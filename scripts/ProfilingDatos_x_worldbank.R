@@ -4,10 +4,12 @@
 # Extrae: urea, gas natural (US y Europa) y petróleo Brent, mensual, 2022+
 # ============================================================
 
+install.packages("ggplot2")
 library(readxl)
 library(dplyr)
 library(lubridate)
 library(here)
+library(ggplot2)
 
 ruta <- here("Datos", "CMO-Historical-Data-Monthly.xlsx")
 
@@ -68,3 +70,21 @@ setdiff(rango_esperado, x$periodo)          # debería dar vacío
 x %>% summarise(across(-periodo,
                        list(min = ~min(.), max = ~max(.),
                             no_validos = ~sum(. <= 0, na.rm = TRUE))))
+
+# ---- 7. GRÁFICO: PRECIO INTERNACIONAL DE LA UREA -------------------
+
+
+ggplot(x, aes(x = periodo, y = urea_usd_mt)) +
+  geom_line(linewidth = 1) +
+  geom_point(size = 2.5) +
+  labs(
+    title = "Precio internacional de la urea, 2022-2025",
+    x = "Fecha",
+    y = "Precio (USD/MT)"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5),
+    panel.grid.minor = element_blank()
+  )
+
