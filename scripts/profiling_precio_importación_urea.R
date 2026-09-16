@@ -2,10 +2,12 @@
 # Data profiling de la base mensual de urea
 # ============================================================
 
+install.packages("ggplot2")
 library(readr)
 library(dplyr)
 library(lubridate)
 library(here)
+library(ggplot2)
 
 # ---- CARGA ---------------------------------------------------------
 # ESTO LO TENGO QUE CAMBIAR CUANDO ME ACEPTE SOFI LO QUE SUBI DE LOS DATOS UNIDOS
@@ -93,4 +95,20 @@ setdiff(rango_esperado, df$periodo)   # huecos (da 0 como buscabamos)
 # 6d. Meses de bajo volumen (precio unitario ruidoso) --> a tener en cuenta, son 3 datos atípicos en dónde la importación fue muy bajita
 df %>% filter(flag_bajo_volumen) %>%
   select(periodo, toneladas, precio_usd_ton, fuente)
+
+
+
+# ============================================================
+# Gráfico: Precio mensual de importación de urea
+# ============================================================
+
+ggplot(df, aes(x = periodo, y = precio_usd_ton)) +
+  geom_line() +
+  geom_point() +
+  labs(
+    title = "Precio mensual de importación de urea, 2022-2026",
+    x = "Fecha",
+    y = "Precio (USD/ton)"
+  ) +
+  theme_minimal()
 
