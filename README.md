@@ -121,6 +121,16 @@ el de EEUU --> más completo
 - Se perfilo también el **tipo de cambio**.
 - Se **unió la base mensual** (Y + X) por `periodo`, dejando la tabla lista para el análisis.
 
+## 3.6 Análisis exploratorio gráfico de gas natural y tipo de cambio
+
+Como parte del análisis preliminar de las variables explicativas, se realizaron gráficos individuales de evolución temporal para el precio del gas natural y el tipo de cambio. El objetivo fue visualizar el comportamiento de cada serie antes de analizar su relación con el precio de la urea.
+
+Gas natural: se graficó la serie mensual del precio Henry Hub (gas_hh_usd_mmbtu), expresada en USD/MMBtu. El gráfico permite observar su evolución, volatilidad y posibles períodos atípicos durante el período analizado.
+Tipo de cambio: se graficó la serie mensual USD/UYU utilizando tc_medio, calculado a partir del promedio mensual de las cotizaciones de compra y venta del BROU. Esto permite analizar visualmente la evolución del dólar durante el mismo período.
+Formato: para ambas variables se utilizó un gráfico de líneas con observaciones mensuales, manteniendo el mismo criterio temporal que el resto de las variables del proyecto.
+Objetivo de esta etapa: detectar tendencias, variaciones fuertes o posibles valores atípicos y comprobar visualmente la continuidad de las series antes de avanzar hacia el análisis conjunto y la regresión.
+
+Resultado: las dos variables quedaron graficadas y listas para ser comparadas posteriormente con el precio internacional y el precio de importación de la urea. En esta etapa no se busca todavía determinar relaciones causales, sino realizar una primera exploración visual de los datos.
 ---
 
 ## 4. Decisiones tomadas
