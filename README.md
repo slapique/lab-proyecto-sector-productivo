@@ -131,7 +131,111 @@ Formato: para ambas variables se utilizó un gráfico de líneas con observacion
 Objetivo de esta etapa: detectar tendencias, variaciones fuertes o posibles valores atípicos y comprobar visualmente la continuidad de las series antes de avanzar hacia el análisis conjunto y la regresión.
 
 Resultado: las dos variables quedaron graficadas y listas para ser comparadas posteriormente con el precio internacional y el precio de importación de la urea. En esta etapa no se busca todavía determinar relaciones causales, sino realizar una primera exploración visual de los datos.
----
+
+## 3.7 Exploración exhaustiva de la base unida — Pass-through y márgenes
+
+Una vez que unimos la base (56 meses × 13 columnas, 2022-01 a 2026-08), empezamos a ver 
+cómo se relacionan las variables. El objetivo es responder las tres preguntas clave antes 
+de meterse en la modelización.
+
+### Estadísticas descriptivas y volatilidad
+
+Calculamos la media, mediana, desviación estándar y coeficiente de variación de cada 
+variable. Esto permite ver cuáles cambian mucho de mes a mes (ruidosas) y cuáles se 
+mantienen estables.
+
+| Variable | Media | CV (%) | Rango | Qué significa |
+|---|---|---|---|---|
+| Toneladas importadas | 27.483 | 73,9 | 48–74.945 | Uruguay importa cantidades muy distintas cada mes |
+| Gas EU (USD/mmbtu) | 18,6 | 70,7 | 8–70 | Explota con el shock energético de 2022 |
+| Gas US (USD/mmbtu) | 3,65 | 49,7 | 1,5–8,8 | Varía bastante, pero menos que el europeo |
+| Urea intl (USD/ton) | 470 | 35,9 | 285–925 | Moderadamente volátil |
+| **Precio de importación (USD/ton)** | **512** | **31,3** | **343–961** | Menos volátil que el internacional |
+| Petróleo Brent (USD/bbl) | 84,2 | 17 | 63–120 | Bastante estable en este período |
+| Tipo de cambio (UYU/USD) | 41,5 | 3,8 | 39–46 | Casi no se mueve |
+
+Lo interesante es que el precio local (CV 31,3%) es menos volátil que el internacional 
+(CV 35,9%). Eso sugiere que hay algo que amortigua las fluctuaciones — probablemente 
+contratos de plazo o márgenes que se ajustan sin que el precio nominal suba tanto.
+
+La brecha promedio es de $42/ton (512 – 470). Eso significa que Uruguay paga ~9% más 
+que el precio internacional. Tiene lógica: hay que sumarle flete, seguros, derechos 
+aduanales y márgenes de los intermediarios.
+
+### Correlaciones entre variables
+
+Miramos cuáles variables se mueven juntas. La matriz de correlaciones (Pearson) nos dice 
+si suben/bajan al mismo tiempo o de forma desacoplada.
+
+| Relación | Correlación | Qué pasa |
+|---|---|---|
+| Precio local ↔ Precio intl | **0,81** | Fuerte. No es perfecta (hay desfases y márgenes), pero se nota que siguen la misma tendencia |
+| Precio local ↔ Gas US | 0,77 | Fuerte. Tiene sentido: la urea se fabrica con gas natural |
+| Precio local ↔ Gas EU | 0,69 | Moderada-fuerte. El gas europeo subió un montón en 2022 y eso impacta el costo global |
+| Precio local ↔ Brent | 0,70 | Moderada-fuerte. El petróleo es un indicador general de costos energéticos |
+| Precio local ↔ Tipo de cambio | 0,15 | Muy débil. Prácticamente no hay relación |
+
+El resultado del tipo de cambio tan bajo tiene un mensaje importante: como se negocia 
+todo en USD, el peso del dólar casi no importa. Medir en dólares fue una buena decisión 
+porque aisla el pass-through del ruido cambiario.
+
+### Pass-through con rezagos — el hallazgo central
+
+La pregunta grande es: ¿cuánto tarda el precio internacional en reflejarse en el precio 
+local?
+
+Lo que hicimos fue calcular la correlación del precio local de hoy con el precio 
+internacional de hace 0 meses, 1 mes, 2 meses y 3 meses. El rezago que da la correlación 
+más alta es donde ocurre la transmisión más completa.
+
+| Rezago | Correlación |
+|---|---|
+| 0 meses (mismo mes) | 0,8086 |
+| **1 mes** | **0,9324** |
+| 2 meses | 0,9137 |
+| 3 meses | 0,8050 |
+
+La correlación salta de 0,81 (contemporáneo) a 0,93 (un mes después). Eso es casi 
+perfecta. Cuando sube el precio en el mercado internacional en enero, Uruguay ajusta 
+sus precios de importación principalmente en febrero.
+
+¿Por qué 1 mes? Los contratos internacionales típicamente se cierran con plazo de 
+entrega de un mes. Los proveedores renegocian precios con ese ciclo. Uruguay no tarda 
+años en ajustarse — es rápido. Y no es "pegajoso" (sticky): no hay una inercia 
+exagerada que frene la transmisión.
+
+### Margen local vs internacional
+
+Calculamos el ratio `precio_local ÷ precio_intl` para ver cuántas veces más caro paga 
+Uruguay respecto al precio internacional puro.
+
+| Estadístico | Valor | Qué significa |
+|---|---|---|
+| Ratio medio | 1,12 | En promedio, Uruguay paga 12% más que el precio internacional |
+| Mínimo | 0,63 | Hubo meses donde pagó 37% menos (cuando la intl sube rápido y Uruguay tiene stock viejo) |
+| Máximo | 1,65 | Hubo meses donde pagó 65% más (cuando la intl cae pero Uruguay tiene compromisos de precio alto) |
+
+El margen promedio de 12% es razonable. Pero la variabilidad es alta (de 63% a 165%). 
+Eso refleja un dato de la realidad: los contratos no se renegocian todos los meses. 
+Algunos meses el precio internacional sube pero Uruguay sigue pagando lo que acordó 
+hace un tiempo (ratio bajo). Otros meses es al revés.
+
+### Validación técnica: flag de bajo volumen y empalme de fuentes
+
+Hay 3 meses donde importó menos de 1.000 toneladas: enero de 2022, marzo de 2025 y 
+enero de 2026. El precio unitario en esos meses sale ruidoso porque poca cantidad = 
+más volatilidad relativa. Los marcamos con una bandera para que después, al modelar, 
+se pueda decidir si incluirlos o no (un chequeo común es correr el modelo con y sin 
+ellos para ver si son outliers que distorsionan).
+
+
+**Ahora tenemos respuestas provisionales a las 3 preguntas del proyecto:**
+1. **¿Cuánto se transmite?** → 81–93%. Casi completo, no hay pérdida significativa.
+2. **¿Cuánto demora?** → Aproximadamente 1 mes. Rápido, sin inercia.
+3. **¿Qué variables influyen?** → El precio internacional es lo principal (0,81). La 
+energía también (gas 0,69–0,77, Brent 0,70). El tipo de cambio casi no cuenta (0,15).
+
+
 
 ## 4. Decisiones tomadas
 
@@ -148,7 +252,7 @@ Resultado: las dos variables quedaron graficadas y listas para ser comparadas po
 
 ---
 
-## 6. Aprendizajes de datos (para el informe)
+## 5. Aprendizajes de datos (para el informe)
 
 - **El dataset es la salida de un proceso, no la realidad.** Comtrade, Datamyne y el Pink
   Sheet fueron armados para otros fines; hubo que interpretarlos y adaptarlos.
