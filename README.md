@@ -132,7 +132,15 @@ Objetivo de esta etapa: detectar tendencias, variaciones fuertes o posibles valo
 
 Resultado: las dos variables quedaron graficadas y listas para ser comparadas posteriormente con el precio internacional y el precio de importación de la urea. En esta etapa no se busca todavía determinar relaciones causales, sino realizar una primera exploración visual de los datos.
 
-## 3.7 Exploración exhaustiva de la base unida — Pass-through y márgenes
+## 3.7 Análisis exploratorio gráfico de precio internacional y precio de importación de la urea
+
+A si mismo como se hizo con el gas natural y el tipo de cambio, también se evaluaron gráficamente las variables del precio internacional de la urea, y el precio de importación. Esto se llevó a cabo con el mismo objetivo mencionado anteriormente, evaluar y analizar el comportamiento de cada variable.
+Precio internacional: se graficó la serie mensual del precio internacional de venta de la urea, expresado en USD/MT. Se puede apreciar como en 2022 se encontraba en un alto, con un máximo de xxx, y luego se aprecia una caída en el precio desde 2023 a 2026. En 2026 vuelve a retomar la tendencia alcista y sube a un máximo de xxx, para luevo volver a bajar. Se detecta una fuerte variación entre enero 2022 y agosto 2026.
+Precio de importación: se graficó la serie mensual del precio importación de la urea, expresado en USD/tonelada. Se puede ver la misma tendencia en los precios de importación que en los precios internacionales del producto, con una fuetrre caída entre 2023 y 2026, y dos subidas en 2022 y mediados de 2026. Se puede notar, por lo menos en los picos, que el precio de importación es siempre más alto que el precio internacional.
+
+Queda concluído el primer análisis meramente superficial de ambas variables, en la cual no llegamos a realizar ninguna conclusión, solamente visualizar el comportamiento de los datos, observar tendencias, para luego realizar un análisis conjunto de todas las variables.
+
+## 3.8 Exploración exhaustiva de la base unida — Pass-through y márgenes
 
 Una vez que unimos la base (56 meses × 13 columnas, 2022-01 a 2026-08), empezamos a ver 
 cómo se relacionan las variables. El objetivo es responder las tres preguntas clave antes 
