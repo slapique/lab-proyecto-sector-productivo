@@ -243,7 +243,45 @@ ellos para ver si son outliers que distorsionan).
 3. **¿Qué variables influyen?** → El precio internacional es lo principal (0,81). La 
 energía también (gas 0,69–0,77, Brent 0,70). El tipo de cambio casi no cuenta (0,15).
 
+## 3.9 Gráficos de relaciones bivariadas — cierre del análisis exploratorio
 
+Para completar el análisis exploratorio, se graficaron las relaciones entre el precio
+de importación de la urea y cada una de las variables explicativas, con el objetivo de
+visualizar lo que la sección 3.8 ya había encontrado en las correlaciones numéricas.
+
+**Precio local vs. precio internacional (mismo mes):** el scatter plot muestra una nube
+de puntos con tendencia positiva clara, consistente con la correlación de 0,81 calculada
+antes. Se ve dispersión alrededor de la línea de ajuste, que es esperable dado que el
+pass-through no es instantáneo ni perfecto.
+
+**Precio local vs. precio internacional con 1 mes de rezago:** este gráfico es el más
+importante del proyecto hasta ahora. Los puntos se alinean mucho más cerca de la recta
+que en la versión sin rezago, confirmando visualmente la correlación de 0,93 encontrada
+en la sección anterior. Graficar ambas series en el tiempo, superpuestas, también deja
+ver cómo los movimientos del precio internacional se repiten en el precio local con un
+desfase de aproximadamente un mes.
+
+**Precio local vs. gas natural y petróleo Brent:** los tres scatter plots (gas US, gas
+Europa, Brent) muestran relaciones positivas moderadas-fuertes, en línea con las
+correlaciones de 0,77, 0,69 y 0,70 respectivamente. Se nota más dispersión que en la
+relación con el precio internacional de la urea, lo cual tiene sentido porque son
+variables relacionadas indirectamente (a través del costo de producción), no el precio
+del mismo producto.
+
+**Precio local vs. tipo de cambio:** el scatter plot muestra una nube de puntos sin
+patrón claro, sin tendencia visible, consistente con la correlación casi nula (0,15)
+de la sección 3.8. Confirma visualmente que medir la Y en dólares fue la decisión
+correcta: el tipo de cambio no está impulsando el precio local.
+
+**Mapa de calor de correlaciones:** se armó una matriz visual con todas las variables
+juntas, que resume de un vistazo lo mismo que la tabla de correlaciones de la sección
+3.8, el precio internacional y las variables energéticas en tonos fuertes, y el tipo
+de cambio prácticamente sin color.
+
+Con este cierre visual del análisis exploratorio, queda confirmado que el precio
+internacional (especialmente rezagado un mes) es la variable que más explica el precio
+local, seguido de las variables energéticas, y con el tipo de cambio como la más
+irrelevante de todas.
 
 ## 4. Decisiones tomadas
 
