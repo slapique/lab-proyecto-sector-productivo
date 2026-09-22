@@ -18,7 +18,7 @@ library(here)
 y <- read_csv(here("Datos", "precio_import_urea__2022enadelante.csv"),
               show_col_types = FALSE) %>%
   mutate(periodo = ym(periodo),
-         flag_bajo_volumen = flag_bajo_volumen == "True") %>%
+         flag_bajo_volumen = toneladas < 1000) %>%
   select(periodo, toneladas, precio_import_usd_mt = precio_usd_ton,
          fuente_y = fuente, flag_bajo_volumen)
 
