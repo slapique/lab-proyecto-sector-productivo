@@ -112,12 +112,12 @@ fecha) y **tratar los `…` como NA** (falsos nulos: si no, R leería esas colum
 
 ### 3.5 Actualización y unión de la base
 
-- Se **actualizó el Pink Sheet a agosto-2026**, CUIDADO PQ PENSAMOS QUE LO ACTUALIZAMOS A SETIEMBRE PERO TODAVÍA NO ESTAN LOS DATOS DE SETIEMBRE
-- Tenemos 2 bases de datos sobre el **gas natural** o sea, esta duplicado, ya que la base de 
-datos del "pink sheet" ya lo tiene a ese dato, hay que elegir con 
-cuál nos quedamos y cuál borramos, yo (Flor) me quedaría con el 
-pink sheet porque tiene el precio del gas de europa y 
-el de EEUU --> más completo
+- Se **actualizó el Pink Sheet a agosto-2026**
+- Gas natural: Se detectó redundancia en las fuentes de gas (Pink Sheet trae gas US/Europa,
+y Datamyne trae gas US/Henry Hub). Se decidió usar gas Henry Hub (EIA) por dos razones:
+(a) continuidad de datos completa hasta agosto-2026, (b) es la serie de referencia global
+para gas natural. En futuras investigaciones se podría probar también con gas Europa para
+captar el efecto del shock energético de 2022.
 - Se perfilo también el **tipo de cambio**.
 - Se **unió la base mensual** (Y + X) por `periodo`, dejando la tabla lista para el análisis.
 
@@ -290,6 +290,8 @@ irrelevante de todas.
 - **Valor CIF** en ambas fuentes de la Y, para que el empalme sea comparable.
 - **Ventana desde 2022** (deja afuera la pandemia).
 - **Meses de bajo volumen** marcados, no eliminados (se deciden en el modelado).
+- **Gas natural** usar serie Henry Hub (EIA, USD/MMBtu) en lugar de Pink Sheet, por
+disponibilidad de datos hasta agosto-2026 y porque es la referencia de mercado global.
 
 ### Decisiones pendientes
 
