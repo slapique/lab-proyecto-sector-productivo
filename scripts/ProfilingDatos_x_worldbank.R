@@ -1,7 +1,7 @@
 # ============================================================
 # Profiling de las variables X del World Bank (Pink Sheet)
 # Fuente: Datos/CMO-Historical-Data-Monthly.xlsx, hoja "Monthly Prices"
-# Extrae: urea, gas natural (US y Europa) y petróleo Brent, mensual, 2022+
+# Extrae: urea y petróleo Brent, mensual, 2022+
 # ============================================================
 
 install.packages("ggplot2")
@@ -27,14 +27,11 @@ x <- crudo %>%
   transmute(
     periodo_txt            = ...1,
     urea_usd_mt            = as.numeric(...61),
-    gas_us_usd_mmbtu       = as.numeric(...8),
-    gas_eu_usd_mmbtu       = as.numeric(...9),
     petroleo_brent_usd_bbl = as.numeric(...3)
   ) %>%
   mutate(periodo = ym(sub("M", "-", periodo_txt))) %>%   # "2022M01" --> 2022-01-01
   filter(periodo >= ymd("2022-01-01")) %>%               # recorte para matchear la Y
-  select(periodo, urea_usd_mt, gas_us_usd_mmbtu,
-         gas_eu_usd_mmbtu, petroleo_brent_usd_bbl)
+  select(periodo, urea_usd_mt, petroleo_brent_usd_bbl)
 
 # ---- 1. ESTRUCTURA -------------------------------------------------
 dim(x)

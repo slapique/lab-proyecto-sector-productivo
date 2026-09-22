@@ -31,8 +31,6 @@ crudo <- read_excel(here("Datos", "CMO-Historical-Data-Monthly.xlsx"),
 ps <- crudo %>%
   transmute(periodo         = ym(sub("M", "-", ...1)),
             urea_int_usd_mt = as.numeric(...61),
-            gas_us_usd_mmbtu = as.numeric(...8),
-            gas_eu_usd_mmbtu = as.numeric(...9),
             brent_usd_bbl   = as.numeric(...3)) %>%
   filter(periodo >= ymd("2022-01-01"))
 
@@ -78,9 +76,6 @@ setdiff(seq(min(base$periodo), max(base$periodo), by = "month"),
         base$periodo)             # esperado: vacío (sin huecos)
 glimpse(base)
 
-# Gas US del Pink Sheet vs Henry Hub de EIA: es la misma serie.
-cor(base$gas_us_usd_mmbtu, base$gas_hh_eia_usd_mmbtu)   # esperado: ~0.9999
-max(abs(base$gas_us_usd_mmbtu - base$gas_hh_eia_usd_mmbtu))  # esperado: < 0.2
 
 # ---- 7. GUARDAR ----------------------------------------------------
 dir.create(here("Datos", "procesados"), showWarnings = FALSE)
