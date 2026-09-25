@@ -1,3 +1,9 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
 # Bitácora del proyecto — Pass-through de la urea en Uruguay
 
 **Materia:** Introducción a la Ciencia de Datos — Universidad de Montevideo
@@ -211,6 +217,26 @@ sus precios de importación principalmente en febrero.
 entrega de un mes. Los proveedores renegocian precios con ese ciclo. Uruguay no tarda 
 años en ajustarse — es rápido. Y no es "pegajoso" (sticky): no hay una inercia 
 exagerada que frene la transmisión.
+
+En una segunda instancia, la profesor nos pidió que veamos hasta dónde llega el efecto del rezago
+### Duración del efecto del rezago
+
+Una vez identificado que la transmisión es máxima en lag 1 (correlación 0,93), 
+se extendió el análisis a lags 0–12 para determinar cuánto tiempo tarda el efecto 
+del precio internacional en desvanecerse completamente.
+
+| Rezago (meses) | Correlación | Interpretación |
+|---|---|---|
+| 0 | 0,8086 | 
+| 1 | 0,9324 | 
+| 2 | 0,9137 | 
+| ... | ... | 
+| 8 | 0.5042 | Efecto se vuelve insignificante |
+
+**Conclusión:** El efecto del precio internacional persiste aproximadamente 7-8 meses, 
+después de los cuales la correlación cae por debajo de 0,5 y se vuelve 
+estadísticamente insignificante.
+
 
 ### Margen local vs internacional
 

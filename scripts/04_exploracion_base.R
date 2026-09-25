@@ -61,7 +61,7 @@ base %>%
 
 
 cat("PASS-THROUGH CON LAGS:\n")
-for (lag in 0:3) {
+for (lag in 0:12) {
   if (lag == 0) {
     corr <- cor(base$precio_import_usd_mt, base$urea_int_usd_mt)
     cat("Lag 0 (contemporáneo):", round(corr, 4), "\n")
@@ -71,6 +71,9 @@ for (lag in 0:3) {
     cat("Lag", lag, "mes(es):", round(corr, 4), "\n")
   }
 }
+
+# le extendí los lags para que vaya hasta 12 meses --> la profe nos pidió que veamos este efecto.
+# podemos ver que el efecto del precio internacional dura aproximadamente 7-8 meses, después la correlación baja a menos de 0.5 y se vuelve insignificante
 
 # lo que vemos aca es que, la correlación "lag 0" que sería el mismo mes, da 81% --> fuerte
 # pero la correlación con lag 1 (1 mes desp) da 93% --> MUCHO MÁS FUERTE
