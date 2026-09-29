@@ -337,3 +337,8 @@ disponibilidad de datos hasta agosto-2026 y porque es la referencia de mercado g
   verificar que midan lo mismo (mismo criterio de valor, unidad y producto) antes de pegarlos.
 - **Un outlier real no se borra en la limpieza:** se marca y se decide en el análisis.
 
+## 6. Estimación del modelo preliminar
+Estimamos mediante la función lm en R, el modelo que se ajusta a los datos obtenidos. Interpretamos los coeficientes y el
+ajuste del modelo. Por otra parte, hicimos lo mismo pero con escala logartimica y obtuvimos un mejor ajuste que en el
+modelo nivel-nivel.
+
