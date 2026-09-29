@@ -1,3 +1,9 @@
+---
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
 # Bitácora del proyecto — Pass-through de la urea en Uruguay
 
 **Materia:** Introducción a la Ciencia de Datos — Universidad de Montevideo
@@ -112,12 +118,12 @@ fecha) y **tratar los `…` como NA** (falsos nulos: si no, R leería esas colum
 
 ### 3.5 Actualización y unión de la base
 
-- Se **actualizó el Pink Sheet a agosto-2026**, CUIDADO PQ PENSAMOS QUE LO ACTUALIZAMOS A SETIEMBRE PERO TODAVÍA NO ESTAN LOS DATOS DE SETIEMBRE
-- Tenemos 2 bases de datos sobre el **gas natural** o sea, esta duplicado, ya que la base de 
-datos del "pink sheet" ya lo tiene a ese dato, hay que elegir con 
-cuál nos quedamos y cuál borramos, yo (Flor) me quedaría con el 
-pink sheet porque tiene el precio del gas de europa y 
-el de EEUU --> más completo
+- Se **actualizó el Pink Sheet a agosto-2026**
+- Gas natural: Se detectó redundancia en las fuentes de gas (Pink Sheet trae gas US/Europa,
+y Datamyne trae gas US/Henry Hub). Se decidió usar gas Henry Hub (EIA) por dos razones:
+(a) continuidad de datos completa hasta agosto-2026, (b) es la serie de referencia global
+para gas natural. En futuras investigaciones se podría probar también con gas Europa para
+captar el efecto del shock energético de 2022.
 - Se perfilo también el **tipo de cambio**.
 - Se **unió la base mensual** (Y + X) por `periodo`, dejando la tabla lista para el análisis.
 
@@ -135,7 +141,7 @@ Resultado: las dos variables quedaron graficadas y listas para ser comparadas po
 ## 3.7 Análisis exploratorio gráfico de precio internacional y precio de importación de la urea
 
 A si mismo como se hizo con el gas natural y el tipo de cambio, también se evaluaron gráficamente las variables del precio internacional de la urea, y el precio de importación. Esto se llevó a cabo con el mismo objetivo mencionado anteriormente, evaluar y analizar el comportamiento de cada variable.
-Precio internacional: se graficó la serie mensual del precio internacional de venta de la urea, expresado en USD/MT. Se puede apreciar como en 2022 se encontraba en un alto, con un máximo de xxx, y luego se aprecia una caída en el precio desde 2023 a 2026. En 2026 vuelve a retomar la tendencia alcista y sube a un máximo de xxx, para luevo volver a bajar. Se detecta una fuerte variación entre enero 2022 y agosto 2026.
+Precio internacional: se graficó la serie mensual del precio internacional de venta de la urea, expresado en USD/MT. Se puede apreciar como en 2022 se encontraba en un alto, y luego se aprecia una caída en el precio desde 2023 a 2026. En 2026 vuelve a retomar la tendencia alcista, para luevo volver a bajar. Se detecta una fuerte variación entre enero 2022 y agosto 2026.
 Precio de importación: se graficó la serie mensual del precio importación de la urea, expresado en USD/tonelada. Se puede ver la misma tendencia en los precios de importación que en los precios internacionales del producto, con una fuetrre caída entre 2023 y 2026, y dos subidas en 2022 y mediados de 2026. Se puede notar, por lo menos en los picos, que el precio de importación es siempre más alto que el precio internacional.
 
 Queda concluído el primer análisis meramente superficial de ambas variables, en la cual no llegamos a realizar ninguna conclusión, solamente visualizar el comportamiento de los datos, observar tendencias, para luego realizar un análisis conjunto de todas las variables.
@@ -211,6 +217,26 @@ sus precios de importación principalmente en febrero.
 entrega de un mes. Los proveedores renegocian precios con ese ciclo. Uruguay no tarda 
 años en ajustarse — es rápido. Y no es "pegajoso" (sticky): no hay una inercia 
 exagerada que frene la transmisión.
+
+En una segunda instancia, la profesor nos pidió que veamos hasta dónde llega el efecto del rezago
+### Duración del efecto del rezago
+
+Una vez identificado que la transmisión es máxima en lag 1 (correlación 0,93), 
+se extendió el análisis a lags 0–12 para determinar cuánto tiempo tarda el efecto 
+del precio internacional en desvanecerse completamente.
+
+| Rezago (meses) | Correlación | Interpretación |
+|---|---|---|
+| 0 | 0,8086 | 
+| 1 | 0,9324 | 
+| 2 | 0,9137 | 
+| ... | ... | 
+| 8 | 0.5042 | Efecto se vuelve insignificante |
+
+**Conclusión:** El efecto del precio internacional persiste aproximadamente 7-8 meses, 
+después de los cuales la correlación cae por debajo de 0,5 y se vuelve 
+estadísticamente insignificante.
+
 
 ### Margen local vs internacional
 
@@ -290,6 +316,8 @@ irrelevante de todas.
 - **Valor CIF** en ambas fuentes de la Y, para que el empalme sea comparable.
 - **Ventana desde 2022** (deja afuera la pandemia).
 - **Meses de bajo volumen** marcados, no eliminados (se deciden en el modelado).
+- **Gas natural** usar serie Henry Hub (EIA, USD/MMBtu) en lugar de Pink Sheet, por
+disponibilidad de datos hasta agosto-2026 y porque es la referencia de mercado global.
 
 ### Decisiones pendientes
 

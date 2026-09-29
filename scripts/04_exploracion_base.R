@@ -4,7 +4,7 @@
 # (Los gráficos van en otro script -> paso 6.)
 # Entrada: Datos/procesados/base_mensual_urea.csv
 # ============================================================
-install.packages(c("readr", "dplyr", "tidyr", "here", "lubridate"))
+#install.packages(c("readr", "dplyr", "tidyr", "here", "lubridate"))
 
 library(readr)
 library(dplyr)
@@ -26,7 +26,7 @@ glimpse(base)   # 56 filas x 13 columnas (2022-01 a 2026-08)
 
 descriptivas <- base %>%
   select(toneladas, precio_import_usd_mt, urea_int_usd_mt,
-         gas_us_usd_mmbtu, gas_eu_usd_mmbtu, brent_usd_bbl, tc_venta_uyu) %>%
+         gas_hh_eia_usd_mmbtu, brent_usd_bbl, tc_venta_uyu)%>%
   pivot_longer(everything(), names_to = "variable", values_to = "valor") %>%
   group_by(variable) %>%
   summarise(media = mean(valor), mediana = median(valor), sd = sd(valor),
@@ -36,7 +36,7 @@ descriptivas <- base %>%
   arrange(desc(CV_pct))
 descriptivas
 
-# Lectura: el gas de Europa y las toneladas son lo más volátil;
+# Lectura: el gas y las toneladas son lo más volátil;
 # el tipo de cambio es lo más estable (CV ~4%) -> en USD casi no pesa.
 # otro dato interesante es ver las medianas y media
 # la brecha entre precio internacional ($470) y precio de 
@@ -45,13 +45,11 @@ descriptivas
 
 # ---- 2. CORRELACIONES ENTRE VARIABLES ------------------------------
 base %>%
-  select(precio_import_usd_mt, urea_int_usd_mt, gas_us_usd_mmbtu,
-         gas_eu_usd_mmbtu, brent_usd_bbl, tc_venta_uyu) %>%
+  select(precio_import_usd_mt, urea_int_usd_mt, gas_hh_eia_usd_mmbtu,
+         tc_venta_uyu)%>%
   cor(use = "complete.obs") %>% round(2)
 # Lectura: precio local vs internacional = 0.81 (fuerte, o sea vemos que hay una fuerte transmisión del precio);
 # Precio local ↔ Gas US: 0.77 (fuerte)
-# Precio local ↔ Gas EU: 0.69 (moderada-fuerte)
-# Precio local ↔ Brent: 0.70 (moderada-fuerte)
 # → Tiene sentido: la urea se produce con gas natural, así que cuando sube el gas, sube el costo de producción
 # precio local vs tipo de cambio = 0.15 (casi nada, como esperábamos en USD).
 
@@ -63,7 +61,7 @@ base %>%
 
 
 cat("PASS-THROUGH CON LAGS:\n")
-for (lag in 0:3) {
+for (lag in 0:12) {
   if (lag == 0) {
     corr <- cor(base$precio_import_usd_mt, base$urea_int_usd_mt)
     cat("Lag 0 (contemporáneo):", round(corr, 4), "\n")
@@ -73,6 +71,9 @@ for (lag in 0:3) {
     cat("Lag", lag, "mes(es):", round(corr, 4), "\n")
   }
 }
+
+# le extendí los lags para que vaya hasta 12 meses --> la profe nos pidió que veamos este efecto.
+# podemos ver que el efecto del precio internacional dura aproximadamente 7-8 meses, después la correlación baja a menos de 0.5 y se vuelve insignificante
 
 # lo que vemos aca es que, la correlación "lag 0" que sería el mismo mes, da 81% --> fuerte
 # pero la correlación con lag 1 (1 mes desp) da 93% --> MUCHO MÁS FUERTE
@@ -91,9 +92,7 @@ base %>% summarise(ratio_medio = mean(ratio_local_int),
 # de todas formas, hay que también saber que hay mucha variablidad entre el máx 65% y el mín, a veces paga mucho más por encima y aveces más por debajo.
 
 
-# ---- 5. CHEQUEO DEL FLAG DE BAJO VOLUMEN (¡ojo, hay un error!) -----
-# La columna flag_bajo_volumen quedó toda en FALSE al rearmar la base,
-# pero hay meses con muy poca importación que deberían estar marcados.
+# ---- 5. CHEQUEO DEL FLAG DE BAJO VOLUMEN -----
 
 base %>% filter(toneladas < 1000) %>%
   select(periodo, toneladas, precio_import_usd_mt, flag_bajo_volumen)
