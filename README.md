@@ -325,6 +325,14 @@ sean columnas explícitas en la base, porque la fórmula de regresión los va a 
 la base pasa de 13 a 16 columnas (56 filas × 16 cols). Los primeros 3 valores
 de cada rezago son NA (es normal: no existe "mes anterior" para enero 2022).
 
+## 3.11 Variaciones porcentuales con rezagos — preparación final para la regresión
+Con la construcción de dlog_uy y dlog_int pasamos de trabajar con niveles de precio a trabajar
+con variaciones porcentuales mensuales, aproximadas mediante diferencias de logaritmos.
+
+**Ahora creamos rezagos de las log-diferencias:**
+dlog_int_lag1, dlog_int_lag2, dlog_int_lag3. Estos permitirán modelar si el cambio del precio
+internacional del mes anterior (o hace 2-3 meses) explica el cambio del precio local hoy.
+
 
 ## 4. Decisiones tomadas
 
