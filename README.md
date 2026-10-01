@@ -342,3 +342,8 @@ Estimamos mediante la función lm en R, el modelo que se ajusta a los datos obte
 ajuste del modelo. Por otra parte, hicimos lo mismo pero con escala logartimica y obtuvimos un mejor ajuste que en el
 modelo nivel-nivel.
 
+## 7. Variaciones porcentuales
+Con la construcción de `dlog_uy` y `dlog_int` pasamos de trabajar con los niveles de precio a trabajar con sus variaciones porcentuales mensuales, aproximadas mediante diferencias de logaritmos. 
+Trabajar en diferencias logarítmicas facilita el estudio de pass-through de precios, y es válida en este caso porque los precios, por definición, no toman valores negativos. 
+El primer mes de la serie queda con valor faltante en ambas variables, ya que no existe un mes anterior contra el cual calcular la variación.
+
