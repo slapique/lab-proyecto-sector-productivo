@@ -307,7 +307,24 @@ de cambio prácticamente sin color.
 Con este cierre visual del análisis exploratorio, queda confirmado que el precio
 internacional (especialmente rezagado un mes) es la variable que más explica el precio
 local, seguido de las variables energéticas, y con el tipo de cambio como la más
-irrelevante de todas.
+irrelevante de todas
+
+## 3.10 Preparación de variables para la regresión — creación de rezagos
+
+Basándose en el hallazgo central de la sección 3.8 (lag 1 tiene correlación máxima de 0,93),
+se crearon explícitamente tres variables de rezago del precio internacional en la base:
+precio_int_lag1, precio_int_lag2 y precio_int_lag3.
+
+**¿Por qué crear estas columnas?**
+
+El análisis de correlaciones fue exploratorio: calculamos correlaciones entre vectores desplazados.
+Para la regresión multivariable (paso 9-10 del procedimiento), necesitamos que lag1, lag2, lag3
+sean columnas explícitas en la base, porque la fórmula de regresión los va a referenciar directamente.
+
+#El resultado
+la base pasa de 13 a 16 columnas (56 filas × 16 cols). Los primeros 3 valores
+de cada rezago son NA (es normal: no existe "mes anterior" para enero 2022).
+
 
 ## 4. Decisiones tomadas
 

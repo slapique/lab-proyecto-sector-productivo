@@ -112,3 +112,16 @@ base %>% group_by(fuente_y) %>%
 # La diferencia de precio es por el PERÍODO (Comtrade=2022-23 caro,
 # Datamyne=2024-26 más barato), no por sesgo de fuente. Las toneladas
 # medias son parecidas -> empalme sano.
+
+# ---- 7. CREAR REZAGOS DEL PRECIO INTERNACIONAL ----
+# Para estudiar cuánto demora la transmisión, desplazamos 
+# el precio internacional 1, 2 y 3 meses hacia atrás.
+
+base <- base %>%
+  mutate(
+    precio_int_lag1 = lag(urea_int_usd_mt, 1),
+    precio_int_lag2 = lag(urea_int_usd_mt, 2),
+    precio_int_lag3 = lag(urea_int_usd_mt, 3)
+  )
+
+base %>% select(periodo, urea_int_usd_mt, precio_int_lag1, precio_int_lag2, precio_int_lag3) %>% head(5)
