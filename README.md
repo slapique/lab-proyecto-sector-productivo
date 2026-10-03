@@ -4,11 +4,11 @@ output:
   html_document: default
   pdf_document: default
 ---
-# Bitácora del proyecto — Pass-through de la urea en Uruguay
+# Pass-through del precio internacional de la urea en Uruguay
 
 **Materia:** Introducción a la Ciencia de Datos — Universidad de Montevideo
 **Repositorio:** `lab-proyecto-sector-productivo`
-**Última actualización:** setiembre 2026
+**Última actualización:** octubre 2026
 
 ---
 
@@ -16,365 +16,334 @@ output:
 
 **Sector:** agroindustria — mercado uruguayo de fertilizantes.
 
-**Tema:** el *pass-through* de la urea, es decir, cómo se trasladan los cambios del
-precio **internacional** de la urea al precio **local** (de importación) en Uruguay.
+**Pregunta:** ¿cuánto del aumento o caída del precio internacional de la urea termina
+reflejándose en el precio de importación en Uruguay, y cuánto demora en hacerlo?
 
-**Pregunta principal:**
-> ¿Cuánto del aumento o caída del precio internacional de la urea termina reflejándose
-> en Uruguay, y cuánto demora en hacerlo?
+**Por qué importa:** Uruguay importa casi toda la urea que consume, así que es tomador de
+precios. Lo que pasa en el mercado internacional debería reflejarse en el precio local,
+pero ese traslado no tiene por qué ser completo ni inmediato. Medirlo ayuda a anticipar
+costos del sector agropecuario.
 
-**Por qué importa:** Uruguay importa casi toda la urea que consume, así que es *tomador
-de precios*. En teoría, lo que pasa en el mercado internacional debería reflejarse en el
-precio local, pero ese traslado no tiene por qué ser completo ni inmediato. Medir ese
-mecanismo ayuda a anticipar costos del sector agropecuario.
-
-**Enfoque:** trabajamos con un solo fertilizante, la **urea** (un nitrogenado *simple*),
-para que la serie de precios sea homogénea y la comparación consistente. La variable a
-explicar se mide en **dólares (USD)**, lo que aísla el pass-through internacional del
-ruido cambiario.
+**Enfoque:** un solo fertilizante (urea, nitrogenado simple) para que la serie sea
+homogénea. La variable a explicar se mide en dólares, lo que aísla el pass-through
+internacional del ruido cambiario.
 
 ### Variables
 
-| Rol | Variable | Fuente |
-|---|---|---|
-| **Y** (a explicar) | Precio de importación de la urea (USD/ton, CIF) | Comtrade + Datamyne |
-| **X** | Precio internacional de la urea (USD/ton) | World Bank (Pink Sheet) |
-| **X** | Gas natural (USD/mmbtu) — insumo de la urea | World Bank (Pink Sheet) |
-| **X** | Petróleo Brent (USD/bbl) — proxy energético/flete | World Bank (Pink Sheet) |
-| **X** (control) | Tipo de cambio USD/UYU | BCU / INE |
+| Rol | Variable | Unidad | Fuente |
+|---|---|---|---|
+| **Y** | Precio de importación de la urea (CIF) | USD/ton | Comtrade (2022-23) + Datamyne (2024-26) |
+| **X principal** | Precio internacional de la urea | USD/ton | Banco Mundial, Pink Sheet |
+| X complementaria | Gas natural Henry Hub (insumo de la urea) | USD/MMBtu | EIA |
+| X complementaria | Petróleo Brent (proxy de energía y flete) | USD/barril | Banco Mundial, Pink Sheet |
+| X control | Tipo de cambio venta, promedio mensual | UYU por USD | BROU |
 
-Las tres preguntas que buscamos responder al final:
-**¿Cuánto se transmite? → ¿Cuánto demora? → ¿Qué variables influyen?**
+**Qué es el precio CIF.** Las dos fuentes de la Y informan el valor de las importaciones
+en términos CIF (*Cost, Insurance and Freight*): el valor de la mercadería puesta en el
+puerto de llegada, con el flete y el seguro incluidos, pero **antes** de aranceles, IVA,
+descarga, logística interna y margen del importador. Es decir, es el precio al que la
+urea llega al país, no el que paga el productor. El precio internacional del Pink Sheet,
+en cambio, es un precio FOB (*Free on Board*: puesto en el barco en el puerto de origen,
+sin flete ni seguro); según la hoja "Description" del archivo, es urea granulada *spot*
+f.o.b. Medio Oriente desde marzo de 2022 (antes, Mar Negro). Por eso es esperable que el
+CIF uruguayo esté por encima, y así es: en promedio 12% más alto (sección 3.3).
+
+**Ventana:** enero 2022 a agosto 2026, 56 meses. Se arranca en 2022 para dejar afuera la
+pandemia; agosto 2026 es el último mes con todas las X disponibles.
 
 ---
 
-## 2. Método de trabajo
+## 2. Cómo está organizado el trabajo
 
-Cada dataset se procesa por separado con el mismo circuito de *data profiling*
-antes de unir la base:
+El avance sigue los 7 pasos de la materia. Cada paso tiene su script en `scripts/`, con
+la explicación en comentarios, y las figuras se guardan en `figuras/`.
 
-**carga → estructura → identidad → completitud → duplicados → tipos → coherencia**
+| Paso | Qué se hizo | Script | Figuras |
+|---|---|---|---|
+| 1. Generar / cargar | Descarga de las cuatro fuentes | `bitacora_pasos_1_a_3.R` | — |
+| 2. Ordenar y limpiar | Perfilado de cada fuente por separado y base mensual unida | `profiling_*.R`, `ProfilingDatos_x_worldbank.R`, `03_preparar_base_mensual.R`, `bitacora_pasos_1_a_3.R` | 01, 02, 03 |
+| 3. Explorar | Descriptivas, correlaciones, rezagos en niveles, margen local/internacional | `04_exploracion_base.R` | — |
+| 4. Transformar | Variaciones porcentuales (diferencias de logaritmos) y rezagos | `07_variaciones_porcentuales.R` | — |
+| 5. Generar información | Modelo preliminar en niveles, robustez, modelo con rezagos, modelo final | `06_aproximacion_modelo.R`, `09_valores_atipicos.R`, `10_rezagos.R`, `11_modelo_final.R` | 06, 11a-11d |
+| 6. Visualizar | Gráficos de relaciones entre variables | `05_relacion_entre_variables.R` | 05a-05f |
+| 7. Comunicar | Este README, sección 5 | — | — |
 
-Recién cuando cada fuente está limpia y validada se unen todas por la columna `periodo`
-(una fila = un mes). Perfilar cada una por separado aísla los problemas en su fuente y
-evita arrastrarlos a la tabla final.
+La numeración de los scripts refleja el orden en que se fueron escribiendo, no el de los
+pasos; la tabla de arriba es la que manda.
+
+**Método de limpieza.** Cada fuente se procesó por separado con el mismo circuito de
+*data profiling* (estructura → identidad → completitud → duplicados → tipos → coherencia)
+antes de unirla a la base. Perfilar por separado aísla los problemas en su fuente y evita
+arrastrarlos a la tabla final. La base unida es `Datos/procesados/base_mensual_urea.csv`:
+56 filas (una por mes) × 11 columnas, sin nulos, sin duplicados y sin huecos en la serie.
 
 ---
 
 ## 3. Registro de avances
 
-### 3.1 Recolección de datos
+### 3.1 Pasos 1 y 2 — datos y limpieza
 
-- **Precio de importación de urea (Y).** Se descargó de dos fuentes que comparten origen
-  (la aduana uruguaya): **UN Comtrade** para 2022–2023 (código HS `310210`, reporter
-  Uruguay, importaciones, partner World, mensual) y **Datamyne** para 2024 en adelante
-  (a nivel operación). Se decidió arrancar en 2022 para dejar afuera la pandemia.
-- **Precios internacionales (X).** *Pink Sheet* del World Bank
-  (`CMO-Historical-Data-Monthly.xlsx`): urea, gas natural y petróleo Brent.
-- **Tipo de cambio.** BCU / INE (`Cotización monedas.xlsx`).
+**Precio de importación (Y).** Dos fuentes que comparten origen (la aduana uruguaya):
+Comtrade para 2022-2023 (HS 310210, importaciones, mensual, agregado) y Datamyne para
+2024 en adelante (a nivel operación, agregado a total mensual sumando empresas y
+orígenes). El precio se calcula como valor CIF en USD ÷ toneladas. Las dos fuentes usan
+el mismo criterio de valor (CIF) y la misma unidad de peso, y el empalme 2023→2024 es
+continuo, sin saltos.
 
-### 3.2 Construcción de la base de la Y
+Hallazgos del perfilado: clave `periodo` única y sin nulos; los únicos NA están en
+`n_ops` (cantidad de operaciones), que son estructurales porque Comtrade no la informa;
+el precio coincide con valor ÷ toneladas en todas las filas; serie mensual continua.
+**Tres meses de bajo volumen** (menos de 1.000 toneladas: ene-2022, mar-2025 y ene-2026)
+tienen un precio unitario ruidoso. Se marcaron con `flag_bajo_volumen` y no se borraron:
+se decide en el modelado (sección 3.5).
 
-Comtrade viene **agregado** (un total por mes) y Datamyne viene **por operación**, así
-que a Datamyne hubo que agregarlo a total mensual (sumando todas las empresas y orígenes)
-para dejarlo al mismo nivel que Comtrade. El precio se calcula como
-`valor CIF (USD) ÷ toneladas`.
+**Pink Sheet (urea internacional y Brent).** Trae 6 filas de encabezado, decenas de
+columnas y datos desde 1960, con los faltantes marcados como `…` (si no se tratan como NA,
+R lee la columna entera como texto). Se actualizó a la edición de setiembre 2026, con
+datos hasta agosto 2026. Sin nulos ni duplicados en la ventana del trabajo; rangos
+plausibles (urea 285-925 USD/ton, Brent 63-120 USD/barril).
 
-**Chequeo de compatibilidad entre fuentes:** ambas usan el mismo criterio de valor
-(**CIF, USD**) y la misma unidad de peso (kg), y el empalme 2023→2024 es continuo, sin
-saltos artificiales — lo que confirma que se pueden pegar en una sola serie. Resultado:
-una base mensual de **57 meses** (2022-01 a 2026-09).
+**Gas natural.** Se usa la serie Henry Hub de la EIA. El Pink Sheet trae también un gas
+US (que es la misma serie Henry Hub: correlación 0,9999 con la de la EIA) y un gas
+Europa. **Decisión del grupo (oct-2026): el proyecto trabaja con una sola serie de gas,
+Henry Hub; el gas Europa queda afuera.** El motivo es que el gas, cualquiera sea, explica
+por qué se mueve el precio internacional de la urea, no cómo se transmite a Uruguay; es
+una variable de contexto, no la variable central, y dos series de gas muy correlacionadas
+entre sí (0,80) serían redundantes en el modelo. Queda anotado como posible extensión:
+el gas Europa capta el shock energético de 2022 (llegó a 70 USD/MMBtu contra 8,8 del
+americano) y podría servir para explicar el pico de precios de ese año.
 
-### 3.3 Profiling de la Y — hallazgos
+**Tipo de cambio.** Cotización diaria del BROU, promediada por mes (compra y venta; se
+usa la venta). Serie completa.
 
-- **Estructura:** 57 filas × 9 columnas. Unidad de observación: un mes.
-- **Clave primaria:** `periodo` (57 valores únicos, sin nulos ni repetidos).
-- **Completitud:** la única columna con nulos es `n_ops` (24 NA). Son **NA estructurales**,
-  no datos perdidos: corresponden a las filas de Comtrade, que al ser agregado no trae el
-  conteo de operaciones. No se rellenan ni se borran.
-- **Tipos:** `periodo` venía como texto y se convirtió a fecha (`ym()`).
-- **Coherencia:** el precio coincide con `valor ÷ toneladas` en todas las filas; sin
-  valores negativos ni ceros; **serie mensual continua, sin huecos** (condición necesaria
-  para el análisis de rezagos).
-- **A vigilar:** 3 meses de **bajo volumen** (ene-2022, mar-2025, ene-2026) marcados con
-  `flag_bajo_volumen`. Se importó tan poco esos meses que el precio unitario sale ruidoso.
-  No se corrigen ahora: se dejan marcados y se decide en la etapa de modelado (por ejemplo,
-  corriendo el modelo con y sin ellos como chequeo de robustez).
+**Figuras del paso 2:** `01_urea_importacion_vs_internacional.png` (las dos series de
+urea), `02_variables_explicativas.png` (gas, Brent y tipo de cambio) y
+`03_toneladas_importadas.png` (volumen mensual, donde se ven los tres meses de bajo
+volumen).
 
-### 3.4 Profiling de las X del World Bank — hallazgos
+### 3.2 Paso 3 — exploración de la base unida
 
-El *Pink Sheet* no es una tabla limpia: trae 6 filas de encabezado, decenas de columnas
-(de las que se usan 3) y datos desde 1960. La limpieza estructural consistió en saltar el
-encabezado, seleccionar las columnas de urea/gas/petróleo, parsear la fecha (`1960M01` →
-fecha) y **tratar los `…` como NA** (falsos nulos: si no, R leería esas columnas como texto).
+**Descriptivas y volatilidad** (coeficiente de variación = desvío ÷ media):
 
-- **Estructura (ya limpia):** 48 filas × 5 columnas (`periodo` + urea + gas US + gas Europa
-  + Brent), todas numéricas.
-- **Completitud:** sin nulos en la ventana 2022–2025 (los `…` estaban en datos viejos).
-- **Duplicados:** ninguno. **Coherencia:** serie continua, rangos plausibles (urea
-  285–925 USD/ton, gas US 1,5–8,8, gas Europa 8–70, Brent 63–120).
-- **Observación:** la versión inicial del Pink Sheet llegaba solo hasta **dic-2025**,
-  mientras la Y llega hasta set-2026 → se detectó una brecha de cobertura.
+| Variable | Media | CV (%) | Rango |
+|---|---|---|---|
+| Toneladas importadas | 27.483 | 73,9 | 48 – 74.945 |
+| Gas Henry Hub (USD/MMBtu) | 3,7 | 50,0 | 1,5 – 8,8 |
+| Urea internacional (USD/ton) | 470 | 35,9 | 285 – 925 |
+| **Precio de importación (USD/ton)** | **512** | **31,3** | **343 – 961** |
+| Brent (USD/barril) | 84,2 | 17,0 | 63 – 120 |
+| Tipo de cambio (UYU/USD) | 41,5 | 3,8 | 39 – 46 |
 
-### 3.5 Actualización y unión de la base
+El precio local es algo menos volátil que el internacional (CV 31% contra 36%): algo
+amortigua las fluctuaciones, probablemente contratos que no se renegocian todos los meses.
+El tipo de cambio casi no se mueve en el período.
 
-- Se **actualizó el Pink Sheet a agosto-2026**
-- Gas natural: Se detectó redundancia en las fuentes de gas (Pink Sheet trae gas US/Europa,
-y Datamyne trae gas US/Henry Hub). Se decidió usar gas Henry Hub (EIA) por dos razones:
-(a) continuidad de datos completa hasta agosto-2026, (b) es la serie de referencia global
-para gas natural. En futuras investigaciones se podría probar también con gas Europa para
-captar el efecto del shock energético de 2022.
-- Se perfilo también el **tipo de cambio**.
-- Se **unió la base mensual** (Y + X) por `periodo`, dejando la tabla lista para el análisis.
+**Correlaciones** (Pearson, en niveles):
 
-## 3.6 Análisis exploratorio gráfico de gas natural y tipo de cambio
-
-Como parte del análisis preliminar de las variables explicativas, se realizaron gráficos individuales de evolución temporal para el precio del gas natural y el tipo de cambio. El objetivo fue visualizar el comportamiento de cada serie antes de analizar su relación con el precio de la urea.
-
-Gas natural: se graficó la serie mensual del precio Henry Hub (gas_hh_usd_mmbtu), expresada en USD/MMBtu. El gráfico permite observar su evolución, volatilidad y posibles períodos atípicos durante el período analizado.
-Tipo de cambio: se graficó la serie mensual USD/UYU utilizando tc_medio, calculado a partir del promedio mensual de las cotizaciones de compra y venta del BROU. Esto permite analizar visualmente la evolución del dólar durante el mismo período.
-Formato: para ambas variables se utilizó un gráfico de líneas con observaciones mensuales, manteniendo el mismo criterio temporal que el resto de las variables del proyecto.
-Objetivo de esta etapa: detectar tendencias, variaciones fuertes o posibles valores atípicos y comprobar visualmente la continuidad de las series antes de avanzar hacia el análisis conjunto y la regresión.
-
-Resultado: las dos variables quedaron graficadas y listas para ser comparadas posteriormente con el precio internacional y el precio de importación de la urea. En esta etapa no se busca todavía determinar relaciones causales, sino realizar una primera exploración visual de los datos.
-
-## 3.7 Análisis exploratorio gráfico de precio internacional y precio de importación de la urea
-
-A si mismo como se hizo con el gas natural y el tipo de cambio, también se evaluaron gráficamente las variables del precio internacional de la urea, y el precio de importación. Esto se llevó a cabo con el mismo objetivo mencionado anteriormente, evaluar y analizar el comportamiento de cada variable.
-Precio internacional: se graficó la serie mensual del precio internacional de venta de la urea, expresado en USD/MT. Se puede apreciar como en 2022 se encontraba en un alto, y luego se aprecia una caída en el precio desde 2023 a 2026. En 2026 vuelve a retomar la tendencia alcista, para luevo volver a bajar. Se detecta una fuerte variación entre enero 2022 y agosto 2026.
-Precio de importación: se graficó la serie mensual del precio importación de la urea, expresado en USD/tonelada. Se puede ver la misma tendencia en los precios de importación que en los precios internacionales del producto, con una fuetrre caída entre 2023 y 2026, y dos subidas en 2022 y mediados de 2026. Se puede notar, por lo menos en los picos, que el precio de importación es siempre más alto que el precio internacional.
-
-Queda concluído el primer análisis meramente superficial de ambas variables, en la cual no llegamos a realizar ninguna conclusión, solamente visualizar el comportamiento de los datos, observar tendencias, para luego realizar un análisis conjunto de todas las variables.
-
-## 3.8 Exploración exhaustiva de la base unida — Pass-through y márgenes
-
-Una vez que unimos la base (56 meses × 13 columnas, 2022-01 a 2026-08), empezamos a ver 
-cómo se relacionan las variables. El objetivo es responder las tres preguntas clave antes 
-de meterse en la modelización.
-
-### Estadísticas descriptivas y volatilidad
-
-Calculamos la media, mediana, desviación estándar y coeficiente de variación de cada 
-variable. Esto permite ver cuáles cambian mucho de mes a mes (ruidosas) y cuáles se 
-mantienen estables.
-
-| Variable | Media | CV (%) | Rango | Qué significa |
-|---|---|---|---|---|
-| Toneladas importadas | 27.483 | 73,9 | 48–74.945 | Uruguay importa cantidades muy distintas cada mes |
-| Gas EU (USD/mmbtu) | 18,6 | 70,7 | 8–70 | Explota con el shock energético de 2022 |
-| Gas US (USD/mmbtu) | 3,65 | 49,7 | 1,5–8,8 | Varía bastante, pero menos que el europeo |
-| Urea intl (USD/ton) | 470 | 35,9 | 285–925 | Moderadamente volátil |
-| **Precio de importación (USD/ton)** | **512** | **31,3** | **343–961** | Menos volátil que el internacional |
-| Petróleo Brent (USD/bbl) | 84,2 | 17 | 63–120 | Bastante estable en este período |
-| Tipo de cambio (UYU/USD) | 41,5 | 3,8 | 39–46 | Casi no se mueve |
-
-Lo interesante es que el precio local (CV 31,3%) es menos volátil que el internacional 
-(CV 35,9%). Eso sugiere que hay algo que amortigua las fluctuaciones — probablemente 
-contratos de plazo o márgenes que se ajustan sin que el precio nominal suba tanto.
-
-La brecha promedio es de $42/ton (512 – 470). Eso significa que Uruguay paga ~9% más 
-que el precio internacional. Tiene lógica: hay que sumarle flete, seguros, derechos 
-aduanales y márgenes de los intermediarios.
-
-### Correlaciones entre variables
-
-Miramos cuáles variables se mueven juntas. La matriz de correlaciones (Pearson) nos dice 
-si suben/bajan al mismo tiempo o de forma desacoplada.
-
-| Relación | Correlación | Qué pasa |
-|---|---|---|
-| Precio local ↔ Precio intl | **0,81** | Fuerte. No es perfecta (hay desfases y márgenes), pero se nota que siguen la misma tendencia |
-| Precio local ↔ Gas US | 0,77 | Fuerte. Tiene sentido: la urea se fabrica con gas natural |
-| Precio local ↔ Gas EU | 0,69 | Moderada-fuerte. El gas europeo subió un montón en 2022 y eso impacta el costo global |
-| Precio local ↔ Brent | 0,70 | Moderada-fuerte. El petróleo es un indicador general de costos energéticos |
-| Precio local ↔ Tipo de cambio | 0,15 | Muy débil. Prácticamente no hay relación |
-
-El resultado del tipo de cambio tan bajo tiene un mensaje importante: como se negocia 
-todo en USD, el peso del dólar casi no importa. Medir en dólares fue una buena decisión 
-porque aisla el pass-through del ruido cambiario.
-
-### Pass-through con rezagos — el hallazgo central
-
-La pregunta grande es: ¿cuánto tarda el precio internacional en reflejarse en el precio 
-local?
-
-Lo que hicimos fue calcular la correlación del precio local de hoy con el precio 
-internacional de hace 0 meses, 1 mes, 2 meses y 3 meses. El rezago que da la correlación 
-más alta es donde ocurre la transmisión más completa.
-
-| Rezago | Correlación |
+| Relación | r |
 |---|---|
-| 0 meses (mismo mes) | 0,8086 |
-| **1 mes** | **0,9324** |
-| 2 meses | 0,9137 |
-| 3 meses | 0,8050 |
+| Precio local ↔ precio internacional | **0,81** |
+| Precio local ↔ gas Henry Hub | 0,77 |
+| Precio local ↔ Brent | 0,70 |
+| Precio local ↔ tipo de cambio | 0,15 |
 
-La correlación salta de 0,81 (contemporáneo) a 0,93 (un mes después). Eso es casi 
-perfecta. Cuando sube el precio en el mercado internacional en enero, Uruguay ajusta 
-sus precios de importación principalmente en febrero.
+El tipo de cambio casi no se relaciona con el precio local: como todo se negocia en
+dólares, medir la Y en USD aísla el pass-through del ruido cambiario.
 
-¿Por qué 1 mes? Los contratos internacionales típicamente se cierran con plazo de 
-entrega de un mes. Los proveedores renegocian precios con ese ciclo. Uruguay no tarda 
-años en ajustarse — es rápido. Y no es "pegajoso" (sticky): no hay una inercia 
-exagerada que frene la transmisión.
+**Correlación del precio local con el precio internacional rezagado:**
 
-En una segunda instancia, la profesor nos pidió que veamos hasta dónde llega el efecto del rezago
-### Duración del efecto del rezago
+| Rezago (meses) | 0 | 1 | 2 | 3 | 4 | 6 | 8 | 10 | 12 |
+|---|---|---|---|---|---|---|---|---|---|
+| r | 0,81 | **0,93** | 0,91 | 0,81 | 0,71 | 0,63 | 0,50 | 0,31 | -0,01 |
 
-Una vez identificado que la transmisión es máxima en lag 1 (correlación 0,93), 
-se extendió el análisis a lags 0–12 para determinar cuánto tiempo tarda el efecto 
-del precio internacional en desvanecerse completamente.
+La correlación máxima está en el rezago 1: el precio local de un mes se parece más al
+precio internacional del mes anterior que al del mismo mes. Es la primera señal de que la
+transmisión no es instantánea. Esta tabla es **exploratoria**: son correlaciones entre
+niveles de precio, y dos series con tendencia parecida se correlacionan alto aunque no
+haya efecto directo, por lo que no sirve para decir cuánto se transmite ni cuándo termina
+el efecto. Eso lo responde la regresión en variaciones (sección 3.5).
 
-| Rezago (meses) | Correlación | Interpretación |
+### 3.3 Margen entre precio local e internacional
+
+| Ratio precio local ÷ internacional | Valor |
+|---|---|
+| Promedio | 1,12 |
+| Mínimo | 0,63 |
+| Máximo | 1,65 |
+
+En promedio Uruguay paga 12% más que el precio internacional, lo que es coherente con la
+diferencia CIF–FOB (flete y seguro) más algún margen. La variabilidad es alta: hay meses
+en que el precio local está muy por debajo del internacional (cuando el internacional
+sube rápido y lo que llega al puerto se compró a precio viejo) y meses en que está muy
+por encima (cuando el internacional cae y llegan compromisos tomados a precio alto). Es la
+misma historia de la demora en la transmisión, vista desde el margen.
+
+### 3.4 Paso 6 — gráficos de relaciones entre variables
+
+Script `05_relacion_entre_variables.R`, figuras `05a` a `05f`:
+
+- **05a / 05b — local vs. internacional, mismo mes y con 1 mes de rezago.** Con el rezago
+  los puntos se alinean mucho más cerca de la recta (0,81 → 0,93).
+- **05c — las dos series en el tiempo.** Los picos del precio local llegan uno o dos meses
+  después que los del internacional; se ve claro en 2022 y en 2026.
+- **05d — local vs. gas y Brent.** Relaciones positivas pero con más dispersión que con la
+  urea internacional: son variables relacionadas de forma indirecta, vía el costo de
+  producción.
+- **05e — local vs. tipo de cambio.** Nube sin patrón.
+- **05f — mapa de calor** con todas las correlaciones.
+
+### 3.5 Pasos 4 y 5 — transformación y modelos
+
+**Por qué variaciones porcentuales.** Se pasa de niveles a diferencias de logaritmos
+(`dlog_uy`, `dlog_int`), que aproximan la variación porcentual mensual. Dos motivos: los
+coeficientes se leen directamente como elasticidades (cuánto % cambia el precio local
+cuando el internacional cambia 1%), y se elimina la tendencia común de las series, que en
+niveles infla la relación. Es válido porque los precios nunca son negativos. El primer
+mes queda NA porque no tiene mes anterior.
+
+**Modelo preliminar en niveles** (`06_aproximacion_modelo.R`). Precio de importación
+contra urea internacional, gas y tipo de cambio del mismo mes: R² = 0,82; urea 0,57
+USD/ton por USD/ton, gas 40 USD/ton por USD/MMBtu, tipo de cambio -18. La versión
+log-log da elasticidades de 0,58 (urea), 0,25 (gas) y -1,6 (tipo de cambio). El problema
+de estos modelos es que los residuos están fuertemente autocorrelacionados
+(`06_acf_residuos_modelo_niveles.png`): el modelo deja afuera la dinámica temporal y sus
+p-valores son demasiado optimistas. Por eso el modelo definitivo es el de variaciones.
+
+**Robustez del modelo en niveles con y sin atípicos** (`09_valores_atipicos.R`). Sin los
+tres meses de bajo volumen: urea 0,57 → 0,60, gas 40,1 → 40,1, tipo de cambio -18 → -14;
+R² 0,815 → 0,836. Los coeficientes que importan no cambian; el tipo de cambio es el único
+inestable, otra razón para no apoyarse en él.
+
+**Modelo con rezagos** (`10_rezagos.R`). Cuatro modelos en variaciones, agregando un
+rezago por vez, sobre los mismos 52 meses:
+
+| Modelo | Rezagos | Coeficientes (p-valor) | R² |
+|---|---|---|---|
+| 1 | t | 0,29 (0,011) | 0,12 |
+| 2 | t, t-1 | 0,17 (0,09) · 0,38 (0,0004) | 0,32 |
+| **3** | **t, t-1, t-2** | **0,24 (0,010) · 0,25 (0,010) · 0,35 (0,0003)** | **0,49** |
+| 4 | t, t-1, t-2, t-3 | 0,24 · 0,25 · 0,36 · **-0,03 (0,78)** | 0,49 |
+
+El rezago 3 no aporta nada (coeficiente nulo, R² igual). El modelo 3 es el elegido.
+
+**Modelo final** (`11_modelo_final.R`), que responde los tres pedidos de la profesora:
+
+*A. ¿Hasta qué rezago dura el efecto?* Se estimaron modelos con 0 a 6 rezagos sobre la
+misma muestra (49 meses) y se compararon con AIC y BIC:
+
+| Rezagos | Coef. del último rezago (p) | Pass-through acumulado | R² aj. | AIC | BIC |
+|---|---|---|---|---|---|
+| 0 | 0,29 (0,016) | 0,29 | 0,10 | -72,8 | -67,1 |
+| 1 | 0,42 (0,0003) | 0,56 | 0,31 | -85,2 | -77,6 |
+| **2** | **0,33 (0,002)** | **0,83** | **0,44** | **-94,1** | **-84,7** |
+| 3 | -0,05 (0,68) | 0,78 | 0,43 | -92,3 | -81,0 |
+| 4 | -0,03 (0,81) | 0,75 | 0,42 | -90,4 | -77,2 |
+| 5 | 0,08 (0,50) | 0,85 | 0,41 | -88,9 | -73,8 |
+| 6 | 0,16 (0,21) | 1,01 | 0,42 | -88,9 | -71,8 |
+
+Del rezago 3 en adelante ningún coeficiente es distinto de cero, el pass-through
+acumulado deja de crecer y AIC y BIC empeoran. **El efecto se reparte entre el mes del
+cambio y los dos siguientes; al tercer mes ya terminó.** Figura `11a`.
+
+*B. Pass-through acumulado.* Suma de los tres coeficientes del modelo final:
+**0,85, con intervalo de confianza al 95% de [0,60 ; 1,10]**. Un aumento de 1% en el
+precio internacional se traslada en 0,24 puntos el mismo mes, 0,25 al mes siguiente y
+0,35 dos meses después. El intervalo incluye el 1, así que con estos datos no se puede
+descartar que la transmisión sea completa; lo que sí se puede afirmar es que es alta
+(claramente mayor que 0,5) y que tarda tres meses. Figura `11b`.
+
+*C. Con y sin atípicos, sobre el modelo final.* Como cada variación compara un mes con el
+anterior, un precio ruidoso contamina dos variaciones; se sacan los tres meses de bajo
+volumen y el siguiente a cada uno (48 meses quedan).
+
+| | Con atípicos | Sin atípicos |
 |---|---|---|
-| 0 | 0,8086 | 
-| 1 | 0,9324 | 
-| 2 | 0,9137 | 
-| ... | ... | 
-| 8 | 0.5042 | Efecto se vuelve insignificante |
+| Coeficientes t, t-1, t-2 | 0,24 · 0,25 · 0,35 | 0,24 · 0,31 · 0,32 |
+| Pass-through acumulado (IC 95%) | 0,85 [0,60 ; 1,10] | 0,87 [0,70 ; 1,04] |
+| R² | 0,49 | 0,71 |
 
-**Conclusión:** El efecto del precio internacional persiste aproximadamente 7-8 meses, 
-después de los cuales la correlación cae por debajo de 0,5 y se vuelve 
-estadísticamente insignificante.
+Los coeficientes casi no se mueven y el pass-through pasa de 0,85 a 0,87: **las
+conclusiones no dependen de esos meses**. El R² salta de 0,49 a 0,71, lo que confirma que
+los meses de bajo volumen son la principal fuente de ruido, pero no sesgan el resultado.
 
+*Diagnóstico.* Test de Ljung-Box sobre los residuos del modelo final: p = 0,12, no se
+detecta autocorrelación (a diferencia del modelo en niveles). Los residuos no son
+normales (Shapiro p < 0,001) por dos observaciones extremas: enero 2026, el mes de menor
+volumen de toda la serie (48 toneladas), y febrero 2026, el siguiente. Eso no invalida los
+coeficientes pero justifica mostrar la versión sin atípicos. Figura `11c`.
 
-### Margen local vs internacional
+*¿Aportan las otras variables?* Agregando las variaciones de gas, Brent y tipo de cambio
+al modelo final: el gas sí aporta (elasticidad 0,19, p = 0,0002; el AIC mejora de -103 a
+-115), Brent (p = 0,13) y tipo de cambio (p = 0,43) no. Los rezagos 1 y 2 de la urea se
+mantienen; el contemporáneo baja porque parte de su efecto lo absorbe el gas del mismo
+mes. El modelo final se queda con los dos rezagos de la urea internacional, que es la
+pregunta del trabajo; el gas queda documentado como complemento válido. Figura `11d`:
+variación observada vs. ajustada por el modelo.
 
-Calculamos el ratio `precio_local ÷ precio_intl` para ver cuántas veces más caro paga 
-Uruguay respecto al precio internacional puro.
-
-| Estadístico | Valor | Qué significa |
-|---|---|---|
-| Ratio medio | 1,12 | En promedio, Uruguay paga 12% más que el precio internacional |
-| Mínimo | 0,63 | Hubo meses donde pagó 37% menos (cuando la intl sube rápido y Uruguay tiene stock viejo) |
-| Máximo | 1,65 | Hubo meses donde pagó 65% más (cuando la intl cae pero Uruguay tiene compromisos de precio alto) |
-
-El margen promedio de 12% es razonable. Pero la variabilidad es alta (de 63% a 165%). 
-Eso refleja un dato de la realidad: los contratos no se renegocian todos los meses. 
-Algunos meses el precio internacional sube pero Uruguay sigue pagando lo que acordó 
-hace un tiempo (ratio bajo). Otros meses es al revés.
-
-### Validación técnica: flag de bajo volumen y empalme de fuentes
-
-Hay 3 meses donde importó menos de 1.000 toneladas: enero de 2022, marzo de 2025 y 
-enero de 2026. El precio unitario en esos meses sale ruidoso porque poca cantidad = 
-más volatilidad relativa. Los marcamos con una bandera para que después, al modelar, 
-se pueda decidir si incluirlos o no (un chequeo común es correr el modelo con y sin 
-ellos para ver si son outliers que distorsionan).
-
-
-**Ahora tenemos respuestas provisionales a las 3 preguntas del proyecto:**
-1. **¿Cuánto se transmite?** → 81–93%. Casi completo, no hay pérdida significativa.
-2. **¿Cuánto demora?** → Aproximadamente 1 mes. Rápido, sin inercia.
-3. **¿Qué variables influyen?** → El precio internacional es lo principal (0,81). La 
-energía también (gas 0,69–0,77, Brent 0,70). El tipo de cambio casi no cuenta (0,15).
-
-## 3.9 Gráficos de relaciones bivariadas — cierre del análisis exploratorio
-
-Para completar el análisis exploratorio, se graficaron las relaciones entre el precio
-de importación de la urea y cada una de las variables explicativas, con el objetivo de
-visualizar lo que la sección 3.8 ya había encontrado en las correlaciones numéricas.
-
-**Precio local vs. precio internacional (mismo mes):** el scatter plot muestra una nube
-de puntos con tendencia positiva clara, consistente con la correlación de 0,81 calculada
-antes. Se ve dispersión alrededor de la línea de ajuste, que es esperable dado que el
-pass-through no es instantáneo ni perfecto.
-
-**Precio local vs. precio internacional con 1 mes de rezago:** este gráfico es el más
-importante del proyecto hasta ahora. Los puntos se alinean mucho más cerca de la recta
-que en la versión sin rezago, confirmando visualmente la correlación de 0,93 encontrada
-en la sección anterior. Graficar ambas series en el tiempo, superpuestas, también deja
-ver cómo los movimientos del precio internacional se repiten en el precio local con un
-desfase de aproximadamente un mes.
-
-**Precio local vs. gas natural y petróleo Brent:** los tres scatter plots (gas US, gas
-Europa, Brent) muestran relaciones positivas moderadas-fuertes, en línea con las
-correlaciones de 0,77, 0,69 y 0,70 respectivamente. Se nota más dispersión que en la
-relación con el precio internacional de la urea, lo cual tiene sentido porque son
-variables relacionadas indirectamente (a través del costo de producción), no el precio
-del mismo producto.
-
-**Precio local vs. tipo de cambio:** el scatter plot muestra una nube de puntos sin
-patrón claro, sin tendencia visible, consistente con la correlación casi nula (0,15)
-de la sección 3.8. Confirma visualmente que medir la Y en dólares fue la decisión
-correcta: el tipo de cambio no está impulsando el precio local.
-
-**Mapa de calor de correlaciones:** se armó una matriz visual con todas las variables
-juntas, que resume de un vistazo lo mismo que la tabla de correlaciones de la sección
-3.8, el precio internacional y las variables energéticas en tonos fuertes, y el tipo
-de cambio prácticamente sin color.
-
-Con este cierre visual del análisis exploratorio, queda confirmado que el precio
-internacional (especialmente rezagado un mes) es la variable que más explica el precio
-local, seguido de las variables energéticas, y con el tipo de cambio como la más
-irrelevante de todas
-
-## 3.10 Preparación de variables para la regresión — creación de rezagos
-
-Basándose en el hallazgo central de la sección 3.8 (lag 1 tiene correlación máxima de 0,93),
-se crearon explícitamente tres variables de rezago del precio internacional en la base:
-precio_int_lag1, precio_int_lag2 y precio_int_lag3.
-
-**¿Por qué crear estas columnas?**
-
-El análisis de correlaciones fue exploratorio: calculamos correlaciones entre vectores desplazados.
-Para la regresión multivariable (paso 9-10 del procedimiento), necesitamos que lag1, lag2, lag3
-sean columnas explícitas en la base, porque la fórmula de regresión los va a referenciar directamente.
-
-#El resultado
-la base pasa de 13 a 16 columnas (56 filas × 16 cols). Los primeros 3 valores
-de cada rezago son NA (es normal: no existe "mes anterior" para enero 2022).
-
-## 3.11 Variaciones porcentuales con rezagos — preparación final para la regresión
-Con la construcción de dlog_uy y dlog_int pasamos de trabajar con niveles de precio a trabajar
-con variaciones porcentuales mensuales, aproximadas mediante diferencias de logaritmos.
-
-**Ahora creamos rezagos de las log-diferencias:**
-dlog_int_lag1, dlog_int_lag2, dlog_int_lag3. Estos permitirán modelar si el cambio del precio
-internacional del mes anterior (o hace 2-3 meses) explica el cambio del precio local hoy.
-
+---
 
 ## 4. Decisiones tomadas
 
 - **Un solo fertilizante (urea)** para homogeneidad de la serie.
-- **Variable Y en USD** → el tipo de cambio queda como control secundario, no protagonista.
+- **Y en dólares**, lo que deja al tipo de cambio como control secundario.
 - **Valor CIF** en ambas fuentes de la Y, para que el empalme sea comparable.
-- **Ventana desde 2022** (deja afuera la pandemia).
-- **Meses de bajo volumen** marcados, no eliminados (se deciden en el modelado).
-- **Gas natural** usar serie Henry Hub (EIA, USD/MMBtu) en lugar de Pink Sheet, por
-disponibilidad de datos hasta agosto-2026 y porque es la referencia de mercado global.
-
-### Decisiones pendientes
-
-- **Qué serie de gas usar:** US (más estable) o Europa (capta mejor el shock energético de
-  2022). Se resuelve al modelar, probando ambas.
+- **Ventana desde 2022**, para dejar afuera la pandemia.
+- **Meses de bajo volumen marcados, no eliminados.** El modelo final se reporta con y sin
+  ellos.
+- **Una sola serie de gas: Henry Hub (EIA).** El gas Europa queda fuera del proyecto
+  (sección 3.1).
+- **Modelo definitivo en variaciones porcentuales con dos rezagos**, elegido por
+  significación de los coeficientes y por AIC/BIC. Los modelos en niveles (06 y 09) quedan
+  como aproximación preliminar.
+- **Scripts que corren solos.** Cada script carga la base al inicio; ninguno depende de
+  haber corrido otro antes. Los que necesitan paquetes los cargan con `library()`; ninguno
+  instala paquetes.
 
 ---
 
-## 5. Aprendizajes de datos (para el informe)
+## 5. Conclusiones (paso 7)
+
+**¿Cuánto se transmite?** Un cambio de 1% en el precio internacional de la urea se
+traslada en un **0,85%** al precio de importación en Uruguay (IC 95%: 0,60 a 1,10). La
+transmisión es alta y no se puede descartar que sea completa.
+
+**¿Cuánto demora?** Se reparte en **tres meses**: alrededor de un cuarto el mismo mes,
+otro cuarto al mes siguiente y algo más de un tercio dos meses después. Del tercer mes en
+adelante no hay efecto. Una explicación plausible, que el trabajo no verifica, es el
+ciclo de compra: lo que se cierra hoy a precio internacional llega al puerto y se registra
+en aduana uno o dos meses después.
+
+**¿Es robusto?** Sin los meses de bajo volumen el pass-through es 0,87. Los residuos no
+muestran autocorrelación. El modelo con dos rezagos es el mejor por AIC y BIC entre los
+siete probados.
+
+**¿Qué otras variables influyen?** El gas natural, principal insumo de la urea, agrega
+información (elasticidad 0,19). El Brent y el tipo de cambio no: medir en dólares fue la
+decisión correcta.
+
+**Límites.** 56 meses es una muestra corta, y por eso el intervalo del pass-through es
+ancho. La Y es un precio implícito (valor ÷ toneladas) que se vuelve ruidoso en meses de
+poco volumen. El precio CIF no es el que paga el productor: faltan aranceles, logística
+interna y márgenes, que podrían agregar demora o amortiguación que este trabajo no mide.
+
+---
+
+## 6. Aprendizajes sobre los datos
 
 - **El dataset es la salida de un proceso, no la realidad.** Comtrade, Datamyne y el Pink
   Sheet fueron armados para otros fines; hubo que interpretarlos y adaptarlos.
 - **Distinguir "falta el dato" de "no corresponde".** Los NA de `n_ops` son estructurales.
-- **Los falsos nulos disfrazados de texto** (`…` del World Bank) cambian el tipo de toda
+- **Los falsos nulos disfrazados de texto** (`…` del Pink Sheet) cambian el tipo de toda
   una columna si no se los trata.
-- **Compatibilidad entre fuentes:** al combinar dos orígenes (Comtrade + Datamyne) hay que
-  verificar que midan lo mismo (mismo criterio de valor, unidad y producto) antes de pegarlos.
-- **Un outlier real no se borra en la limpieza:** se marca y se decide en el análisis.
-
-## 6. Estimación del modelo preliminar
-Estimamos mediante la función lm en R, el modelo que se ajusta a los datos obtenidos. Interpretamos los coeficientes y el
-ajuste del modelo. Por otra parte, hicimos lo mismo pero con escala logartimica y obtuvimos un mejor ajuste que en el
-modelo nivel-nivel.
-
-## 7. Variaciones porcentuales
-Con la construcción de `dlog_uy` y `dlog_int` pasamos de trabajar con los niveles de precio a trabajar con sus variaciones porcentuales mensuales, aproximadas mediante diferencias de logaritmos. 
-Trabajar en diferencias logarítmicas facilita el estudio de pass-through de precios, y es válida en este caso porque los precios, por definición, no toman valores negativos. 
-El primer mes de la serie queda con valor faltante en ambas variables, ya que no existe un mes anterior contra el cual calcular la variación.
-
-## 9. Prueba de regresión lineal sin valores atípicos
-Al notar que los meses de enero 2022, marzo 2025 y enero 2026 registraron muy bajo volumen, con la función de flag las marcamos para consderarlos como datos atípicos. Luego de estimar la regresión lineal para poder explicar el precio de la importaciòn de la urea en función a diferentes variables (precio del gas, tipo de cambio y precio internacional), hicimos una prueba de robustez, para ver si las conclusiones cambian sustancialmente sin considerar estos valores atípicos. Se volvió a estimar el modelo excluyendo estos 3 meses de bajo volumen, y la primera conclusión que pudimos sacar fue que el ajuste del modelo mejoró, el modelo pasó de explicar 79,2% a 82% (considerando el R2), y además el error estándar tambien disminuye, lo que explica que las predicciones del modelo se acercan más a los valores observados. Luego, al hacer una comparaicón de los coeficientes, que consideramos lo más crucial, pudimos ver que estos se mantuvieron estables y con los mismos signos, lo que indica que los resultados de la regresión no dependen fuertemente de estos meses. Por lo tanto, pudimos concluir que estas 3 observaciones no modifican sustancialmente las relacinoes que encuentra el modelo.
-
-## 10. Prueba de rezagos hasta 3 meses
-Estimamos cuatro modelos para poder observar cuanto demora en transmitirse el cambio cuando varia un 1% el precio internacional de la urea. Lo que nos parece crucial analizar de los resultados es el coeficiente, que explica cuanto varia el precio de importacion cuando el precio internacional varia un 1%, el p valor, que nos explica cuanta evidencia estadistica hay de que el coeficiente sea distinto a 0, y el R2, que nos dice que tan bien las variables de un modelo logran explicar POR QUE el precio de importacion va cambiando de un mes a otro. 
-El primer modelo muestra cuanto varia el precio de importacion el mismo mes que se produce la variacion en el precio internacional. Encontramos un coeficiente de 0,288, que significa que una variacion de un 1% en el precio internacional se asocia a una suba del 0,288% en el precio de importacion, y un pvalor menor a 0,05 (valor estandar). En el modelo dos, vemos que una suba del precio internacional en un 1% el mes ANTERIOR se asocia a una suba de 0,38% ESTE MES. Ademas el p valor da evidencia de que el efecto mucho mas fuerte, siendo mas chico que el primer modelo, entonces una parte importante de la transicion puede ocurrir con un mes de retraso. En el modelo tres podemos observar que una suba del 1% en el precio internacional HACE 2 MESES se asocia con una suba de 0,35% en el mes ACTUAL y ademas el p valor es el que muestra evidencia mas fuerte de los 3, siendo de el mas chico de todos, es decir, este modelo es el que muestra mas evidencia de que el coeficiente (o sea, cuanto cambia el precio de importacion ante una variacion del precio internacional del 1%), no es cero. Agregando, muestra un valor de R2 sumamente mas grande que los modelos anterioes, de 48,7%. En este modelo, que es el mas fuerte de todos, calculamos el pass-through, porque los efectos se distribuyen en el tiempo, la transmision del precio no ocurre de golpe, se va transmitiendo durante varios meses. Este es de 0,85, sugiriendo que un aumento de un 1% en el precio internacional se asocia con una suba ACUMULADA de 0,85% en el precio de importacion a lo largo de dos meses. Por ultimo, el modelo 4 da valor negativo, entonces concluimos que no hay evidencia de que el cambio en el precio internacional de hace 3 meses tenga que ver con el precio de importacion de hoy.
+- **Compatibilidad entre fuentes:** al pegar Comtrade con Datamyne hay que verificar que
+  midan lo mismo (criterio de valor, unidad y producto).
+- **Un outlier real no se borra en la limpieza:** se marca y se decide en el análisis,
+  mostrando el resultado con y sin él.
+- **El nombre de una columna no dice lo que contiene.** Una versión anterior de los
+  modelos usó `tc_dias` (días con cotización en el mes) como si fuera el tipo de cambio.
+  Hay que mirar los valores, no solo el nombre.
+- **Correlación alta en niveles no es pass-through.** Dos series con tendencia se
+  correlacionan alto aunque no haya efecto directo; la magnitud y la demora de la
+  transmisión salen de la regresión en variaciones, no de la correlación.
+- **Niveles vs. logaritmos no se comparan por R².** Son variables dependientes distintas;
+  la elección se hace por interpretación y por el comportamiento de los residuos.
