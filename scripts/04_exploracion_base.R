@@ -16,7 +16,7 @@ base <- read_csv(here("Datos", "procesados", "base_mensual_urea.csv"),
   mutate(periodo = as.Date(periodo)) %>%
   arrange(periodo)
 
-glimpse(base)   # 56 filas x 13 columnas (2022-01 a 2026-08)
+glimpse(base)   # 56 filas x 11 columnas (2022-01 a 2026-08)
 
 
 
@@ -72,8 +72,13 @@ for (lag in 0:12) {
   }
 }
 
-# le extendí los lags para que vaya hasta 12 meses --> la profe nos pidió que veamos este efecto.
-# podemos ver que el efecto del precio internacional dura aproximadamente 7-8 meses, después la correlación baja a menos de 0.5 y se vuelve insignificante
+# Extendimos los rezagos hasta 12 meses porque la profesora pidió ver hasta dónde dura el efecto.
+# La correlación baja de a poco (0,93 en el rezago 1, 0,50 en el 8, ~0 en el 12), pero OJO:
+# estas son correlaciones entre NIVELES de precio, y dos series con tendencia parecida se
+# correlacionan alto aunque no haya efecto directo. Con 48 observaciones una correlación de
+# 0,5 sigue siendo muy significativa, así que de acá no se puede decir cuándo "termina" el
+# efecto. Esa pregunta se responde con la regresión en variaciones porcentuales (scripts 10
+# y 11), que es la que mide el efecto propio de cada rezago.
 
 # lo que vemos aca es que, la correlación "lag 0" que sería el mismo mes, da 81% --> fuerte
 # pero la correlación con lag 1 (1 mes desp) da 93% --> MUCHO MÁS FUERTE

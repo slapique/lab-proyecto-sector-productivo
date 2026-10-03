@@ -1,5 +1,5 @@
 
-install.packages("here")
+
 library(readr)
 library(dplyr)
 library(tidyr)
@@ -80,6 +80,6 @@ summary(modelo_4)
 # el pvalor da evidencia de que el efecto mucho mas fuerte, 0,0004, una parte importante de la transicion puede ocurrir con un mes de retraso.
 # modelo 3 = una suba del 1% en el precio internacional HACE 2 MESES se asocia con una suba de 0,35% en el mes ACTUAL
 # el p valor es el que muestra eivdencia mas fuerte de los 3, siendo de 0,00028.
-# calculamos el pass-through porque los efectos se distribuyen en el tiempo, y nos da 0,85, o sea que la transmision del precio no ocurre de golpe, se va transmitiendo durante varios meses. Un aumento de un 1% en el precio int se asocia con una suba ACUMULADA de 0,85% en el precio de imp a lo largo de dos meses.
+# calculamos el pass-through porque los efectos se distribuyen en el tiempo, y nos da 0,85, o sea que la transmision del precio no ocurre de golpe, se va transmitiendo durante varios meses. Un aumento de un 1% en el precio int se asocia con una suba ACUMULADA de 0,85% en el precio de imp entre el mes del cambio y los dos siguientes 
 # modelo 4 = da valor negativo, etnonces concluimos que no hay evidencia de que el cambio en el precio int de hace 3 meses tenga que ver con el precio de imp hoy.
 
