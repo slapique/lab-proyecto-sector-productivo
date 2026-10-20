@@ -25,7 +25,8 @@ base <- read.csv("Datos/procesados/base_mensual_urea.csv", stringsAsFactors = FA
 base$periodo <- as.Date(base$periodo)
 base <- base[order(base$periodo), ]
 dir.create("figuras", showWarnings = FALSE)
-
+library(sandwich)   # errores estándar Newey-West (HAC)
+library(lmtest)     # tests de Durbin-Watson y Breusch-Pagan
 # ---- 0. Variaciones porcentuales y rezagos (igual que en 07 y 10) -------
 rezago <- function(x, k) c(rep(NA, k), head(x, -k))
 
@@ -197,13 +198,55 @@ c(R2_con = round(summary(modelo_final)$r.squared, 3),
 # C2. DIAGNÓSTICO DEL MODELO FINAL
 # ============================================================
 
-# (a) Autocorrelación de los residuos. Si quedara autocorrelación, el
-#     modelo estaría dejando dinámica afuera. Test de Ljung-Box con 6
-#     rezagos: p > 0,05 significa que NO se detecta autocorrelación.
-Box.test(resid(modelo_final), lag = 6, type = "Ljung-Box")
-# esperado: p ≈ 0,11 -> no se rechaza; los residuos no muestran
-# autocorrelación significativa. Compárese con el modelo en niveles
-# del script 06, donde la autocorrelación era evidente.
+# (a) Autocorrelación de los residuos.
+#     CORRECCIÓN (oct-2026): la versión anterior corría el test de
+#     Ljung-Box solo a 6 rezagos (p = 0,12) y concluía que no había
+#     autocorrelación. A 1 rezago sí la hay, y es NEGATIVA: la figura
+#     11c lo mostraba y el texto decía lo contrario. Se corrige el
+#     diagnóstico y se agregan errores estándar robustos (Newey-West).
+Box.test(resid(modelo_final), lag = 1, type = "Ljung-Box")   # esperado: p = 0,005
+Box.test(resid(modelo_final), lag = 6, type = "Ljung-Box")   # esperado: p = 0,12
+acf(resid(modelo_final), plot = FALSE)$acf[2]                 # esperado: -0,38
+dwtest(modelo_final, alternative = "two.sided")               # esperado: DW = 2,75, p = 0,007
+
+# Lectura: hay autocorrelación negativa de primer orden (DW > 2, ACF
+# negativa en el rezago 1). Es el patrón típico del ruido de medición
+# en una serie que se diferencia: el precio de importación es un precio
+# implícito (valor / toneladas) y un mes de poco volumen da un precio
+# raro, que produce una variación demasiado alta seguida de una
+# demasiado baja. No es dinámica que el modelo deje afuera (los rezagos
+# 3 a 6 no aportan, sección A). La prueba: sin los meses de bajo
+# volumen la autocorrelación casi desaparece.
+Box.test(resid(modelo_sin), lag = 1, type = "Ljung-Box")     # esperado: p = 0,11
+acf(resid(modelo_sin), plot = FALSE)$acf[2]                   # esperado: -0,22
+
+# Consecuencia: los coeficientes siguen siendo insesgados, pero los
+# errores estándar de mínimos cuadrados no son confiables. Se
+# recalculan con Newey-West (HAC), que corrige por autocorrelación y
+# heterocedasticidad. Con 3 rezagos de ventana (uno más que el modelo).
+V_nw <- NeweyWest(modelo_final, lag = 3, prewhite = FALSE, adjust = TRUE)
+coeftest(modelo_final, vcov. = V_nw)
+# esperado: b0 = 0,24 (p = 0,0003), b1 = 0,25 (p = 0,0004), b2 = 0,35 (p < 0,0001)
+
+# Pass-through con el intervalo Newey-West (misma función de la
+# sección B, pasándole la matriz robusta)
+pass_through_nw <- function(m, vars, V) {
+  b  <- coef(m)[vars]
+  pt <- sum(b)
+  se <- sqrt(sum(V[vars, vars]))
+  c(pass_through = round(pt, 3),
+    IC_inf = round(pt - 1.96 * se, 3),
+    IC_sup = round(pt + 1.96 * se, 3))
+}
+rbind(minimos_cuadrados = pass_through(modelo_final, vars_f),
+      newey_west        = pass_through_nw(modelo_final, vars_f, V_nw))
+# esperado: 0,85 [0,60 ; 1,10] con mínimos cuadrados
+#           0,85 [0,74 ; 0,96] con Newey-West
+# Lectura: los tres coeficientes siguen siendo significativos y el
+# intervalo se angosta (con autocorrelación negativa, mínimos cuadrados
+# sobreestima la incertidumbre). El resultado se sostiene y queda más
+# firme: la transmisión es alta, y con Newey-West el 1 queda afuera del
+# intervalo, o sea que no sería completa. Sin atípicos: 0,87 [0,76 ; 0,97].
 
 png("figuras/11c_diagnostico_residuos.png", width = 1000, height = 450)
 par(mfrow = c(1, 2))
@@ -220,6 +263,13 @@ shapiro.test(resid(modelo_final))
 # cuadrados no necesita normalidad para ser insesgada), pero es otra
 # razón para mostrar la versión sin atípicos.
 
+# (b2) Heterocedasticidad. Test de Breusch-Pagan: la hipótesis nula es
+#      que la varianza de los residuos es constante.
+bptest(modelo_final)
+# esperado: BP = 0,80, p = 0,85 -> no se rechaza; la varianza de los
+# residuos es constante. Los errores estándar Newey-West de (a) cubren
+# de todos modos autocorrelación y heterocedasticidad a la vez.
+
 # (c) Residuos en el tiempo
 base_f$residuo <- resid(modelo_final)
 base_f[abs(base_f$residuo) > 2 * sd(base_f$residuo), c("periodo", "toneladas", "residuo")]
@@ -227,6 +277,30 @@ base_f[abs(base_f$residuo) > 2 * sd(base_f$residuo), c("periodo", "toneladas", "
 # feb-2026 (-0,31): el mes de menor volumen de toda la serie (48 ton) y
 # el siguiente. Es exactamente el patrón de "un precio raro contamina dos
 # variaciones" descrito en C1.
+
+# ============================================================
+# C2b. ¿EL EMPALME DE FUENTES SESGA EL RESULTADO?
+# ============================================================
+# Agregado (oct-2026). La Y viene de dos fuentes: Comtrade (2022-23) y
+# Datamyne (2024-26). Se agrega al modelo final una variable 0/1 que
+# vale 1 en los meses de Datamyne. Si su coeficiente no es distinto de
+# cero, el cambio de fuente no desplaza las variaciones del precio ni
+# altera los coeficientes de la urea internacional.
+base_f$fuente_datamyne <- as.integer(base_f$fuente_y == "Datamyne")
+table(base_f$fuente_y)   # esperado: Comtrade 20, Datamyne 32
+
+modelo_fuente <- lm(dlog_uy ~ dlog_int + dlog_int_lag1 + dlog_int_lag2
+                    + fuente_datamyne, data = base_f)
+summary(modelo_fuente)
+pass_through(modelo_fuente, vars_f)
+
+# Lectura (valores esperados):
+#   fuente_datamyne = 0,016 (p = 0,52): no es distinto de cero.
+#   Los coeficientes de la urea quedan en 0,23 / 0,25 / 0,35 (contra
+#   0,24 / 0,25 / 0,35 sin la dummy) y el pass-through en 0,83
+#   [0,57 ; 1,09], dentro del intervalo del modelo final.
+#   Conclusión: el empalme Comtrade -> Datamyne no sesga el resultado.
+#   La dummy no se incorpora al modelo final porque no aporta.s
 
 # ============================================================
 # C3. ¿APORTAN ALGO EL GAS, EL BRENT Y EL TIPO DE CAMBIO?
@@ -275,7 +349,10 @@ dev.off()
 # 2. ¿Cuánto demora?  Se reparte en tres meses: 0,24 el mismo mes, 0,25
 #    al mes siguiente y 0,35 dos meses después. Del tercer mes en
 #    adelante no hay efecto.
-# 3. ¿Es robusto?  Sin los meses atípicos: 0,87. Sin autocorrelación en
-#    los residuos. El modelo con 2 rezagos es el mejor por AIC y BIC.
+# 3. ¿Es robusto?  Sin los meses atípicos: 0,87. Los residuos tienen
+#    autocorrelación negativa de primer orden (ruido del precio
+#    implícito); con errores estándar Newey-West los coeficientes
+#    siguen siendo significativos y el IC del pass-through es
+#    [0,74 ; 0,96]. El modelo con 2 rezagos es el mejor por AIC y BIC.
 # 4. ¿Otras variables?  El gas natural aporta (0,19); Brent y tipo de
 #    cambio no.

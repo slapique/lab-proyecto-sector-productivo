@@ -13,6 +13,7 @@
 library(readr)
 library(dplyr)
 library(here)
+library(tseries)   # test ADF de raíz unitaria
 
 base <- read_csv(here("Datos", "procesados", "base_mensual_urea.csv"),
                  show_col_types = FALSE) %>%
@@ -43,6 +44,28 @@ base %>%
 # 2. Reduce el riesgo de encontrar una relación espuria, ya que dos series con
 #    tendencia pueden mostrar una correlación alta en niveles sin que exista una
 #    relación real entre sus movimientos.
+
+# ---- TEST DE RAÍZ UNITARIA (ADF) --------------------------------
+# Agregado (oct-2026). Hasta acá la razón para pasar a variaciones era
+# verbal. El test de Dickey-Fuller aumentado la comprueba: la hipótesis
+# nula es que la serie tiene raíz unitaria (no es estacionaria, camina
+# con tendencia). Si en niveles no se rechaza y en diferencias sí, la
+# serie es integrada de orden 1 y la regresión tiene que hacerse en
+# diferencias; en niveles sería espuria.
+# adf.test corta el p-valor en 0,01 y avisa con un warning
+# ("p-value smaller than printed p-value"): es normal, quiere decir
+# que el p-valor real es menor que 0,01.
+adf.test(log(base$precio_import_usd_mt))     # esperado: DF = -1,87, p = 0,63
+adf.test(log(base$urea_int_usd_mt))          # esperado: DF = -2,52, p = 0,37
+adf.test(na.omit(base$dlog_uy))              # esperado: DF = -4,58, p < 0,01
+adf.test(na.omit(base$dlog_int))             # esperado: DF = -4,52, p < 0,01
+
+# Lectura: en niveles no se rechaza la raíz unitaria para ninguna de las
+# dos series (p = 0,63 y 0,37); en variaciones se rechaza para las dos
+# (p < 0,01). Las dos series son I(1) y el modelo va en variaciones.
+# Es la justificación formal de lo que se hizo arriba y de por qué los
+# modelos en niveles de los scripts 06 y 09 quedan como aproximación
+# preliminar.
 
 # ---- CREAR REZAGOS DE LAS VARIACIONES LOGARÍTMICAS ----
 # Para la regresión con rezagos, necesitamos desplazar las

@@ -201,6 +201,16 @@ cuando el internacional cambia 1%), y se elimina la tendencia común de las seri
 niveles infla la relación. Es válido porque los precios nunca son negativos. El primer
 mes queda NA porque no tiene mes anterior.
 
+**Test de raíz unitaria** (Dickey-Fuller aumentado, `07_variaciones_porcentuales.R`). En
+niveles no se rechaza que las series tengan raíz unitaria; en variaciones sí. Las dos
+series son integradas de orden 1, y por eso el modelo tiene que estimarse en variaciones:
+en niveles la regresión sería espuria.
+
+| Serie | p-valor en niveles | p-valor en variaciones |
+|---|---|---|
+| Precio de importación (log) | 0,63 | < 0,01 |
+| Urea internacional (log) | 0,37 | < 0,01 |
+
 **Modelo preliminar en niveles** (`06_aproximacion_modelo.R`). Precio de importación
 contra urea internacional, gas y tipo de cambio del mismo mes: R² = 0,82; urea 0,57
 USD/ton por USD/ton, gas 40 USD/ton por USD/MMBtu, tipo de cambio -18. La versión
@@ -266,11 +276,28 @@ Los coeficientes casi no se mueven y el pass-through pasa de 0,85 a 0,87: **las
 conclusiones no dependen de esos meses**. El R² salta de 0,49 a 0,71, lo que confirma que
 los meses de bajo volumen son la principal fuente de ruido, pero no sesgan el resultado.
 
-*Diagnóstico.* Test de Ljung-Box sobre los residuos del modelo final: p = 0,12, no se
-detecta autocorrelación (a diferencia del modelo en niveles). Los residuos no son
+*Diagnóstico.* Los residuos del modelo final tienen **autocorrelación negativa de primer
+orden**: ACF de -0,38 en el rezago 1, Durbin-Watson 2,75 y Ljung-Box p = 0,005 (a 6
+rezagos, p = 0,12). No es dinámica que el modelo deje afuera (los rezagos 3 a 6 no
+aportan) sino ruido de medición: la Y es un precio implícito (valor ÷ toneladas), y un
+mes de poco volumen produce una variación demasiado alta seguida de una demasiado baja.
+La prueba es que sin los meses de bajo volumen la autocorrelación casi desaparece (ACF
+-0,22, p = 0,11). Los coeficientes siguen siendo insesgados, pero los errores estándar de
+mínimos cuadrados no son confiables, así que se recalcularon con **errores estándar
+Newey-West**: los tres rezagos siguen siendo significativos (p < 0,001) y el intervalo del
+pass-through se angosta a **[0,74 ; 0,96]** (con autocorrelación negativa, mínimos
+cuadrados sobreestima la incertidumbre). Con ese intervalo el 1 queda afuera: la
+transmisión es alta pero no completa.
+
+La varianza de los residuos es constante (Breusch-Pagan p = 0,85). Los residuos no son
 normales (Shapiro p < 0,001) por dos observaciones extremas: enero 2026, el mes de menor
 volumen de toda la serie (48 toneladas), y febrero 2026, el siguiente. Eso no invalida los
 coeficientes pero justifica mostrar la versión sin atípicos. Figura `11c`.
+
+*¿El empalme de fuentes sesga el resultado?* Agregando al modelo final una variable 0/1
+que vale 1 en los meses de Datamyne, su coeficiente es 0,016 (p = 0,52) y los
+coeficientes de la urea no se mueven (0,23 / 0,25 / 0,35). El cambio de fuente no
+desplaza la serie ni altera el pass-through.
 
 *¿Aportan las otras variables?* Agregando las variaciones de gas, Brent y tipo de cambio
 al modelo final: el gas sí aporta (elasticidad 0,19, p = 0,0002; el AIC mejora de -103 a
@@ -297,7 +324,8 @@ variación observada vs. ajustada por el modelo.
   como aproximación preliminar.
 - **Scripts que corren solos.** Cada script carga la base al inicio; ninguno depende de
   haber corrido otro antes. Los que necesitan paquetes los cargan con `library()`; ninguno
-  instala paquetes.
+  instala paquetes. Los scripts 07 y 11 usan `tseries`, `sandwich` y `lmtest`, que hay que instalar una vez
+con `install.packages()`.
 
 ---
 
@@ -313,9 +341,12 @@ adelante no hay efecto. Una explicación plausible, que el trabajo no verifica, 
 ciclo de compra: lo que se cierra hoy a precio internacional llega al puerto y se registra
 en aduana uno o dos meses después.
 
-**¿Es robusto?** Sin los meses de bajo volumen el pass-through es 0,87. Los residuos no
-muestran autocorrelación. El modelo con dos rezagos es el mejor por AIC y BIC entre los
-siete probados.
+**¿Es robusto?** Sin los meses de bajo volumen el pass-through es 0,87. Los residuos
+tienen autocorrelación negativa de primer orden, que viene del ruido del precio implícito
+en los meses de poco volumen; con errores estándar Newey-West los coeficientes siguen
+siendo significativos y el intervalo del pass-through es [0,74 ; 0,96]. El empalme
+Comtrade-Datamyne no sesga el resultado. El modelo con dos rezagos es el mejor por AIC y
+BIC entre los siete probados.
 
 **¿Qué otras variables influyen?** El gas natural, principal insumo de la urea, agrega
 información (elasticidad 0,19). El Brent y el tipo de cambio no: medir en dólares fue la
@@ -324,7 +355,11 @@ decisión correcta.
 **Límites.** 56 meses es una muestra corta, y por eso el intervalo del pass-through es
 ancho. La Y es un precio implícito (valor ÷ toneladas) que se vuelve ruidoso en meses de
 poco volumen. El precio CIF no es el que paga el productor: faltan aranceles, logística
-interna y márgenes, que podrían agregar demora o amortiguación que este trabajo no mide.
+interna y márgenes, que podrían agregar demora o amortiguación que este trabajo no mide. La importación de urea es estacional: el volumen se concentra entre junio y octubre y es
+mínimo entre diciembre y febrero (figura `03`), donde caen dos de los tres meses de bajo
+volumen. Con 56 meses, menos de cinco ciclos anuales, no hay datos suficientes para
+modelarla con variables mensuales; trabajar en variaciones mensuales atenúa el problema,
+pero no lo elimina.
 
 ---
 
