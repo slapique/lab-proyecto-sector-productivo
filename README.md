@@ -258,9 +258,9 @@ cambio y los dos siguientes; al tercer mes ya terminó.** Figura `11a`.
 *B. Pass-through acumulado.* Suma de los tres coeficientes del modelo final:
 **0,85, con intervalo de confianza al 95% de [0,60 ; 1,10]**. Un aumento de 1% en el
 precio internacional se traslada en 0,24 puntos el mismo mes, 0,25 al mes siguiente y
-0,35 dos meses después. El intervalo incluye el 1, así que con estos datos no se puede
-descartar que la transmisión sea completa; lo que sí se puede afirmar es que es alta
-(claramente mayor que 0,5) y que tarda tres meses. Figura `11b`.
+0,35 dos meses después. El intervalo de mínimos cuadrados incluye el 1, pero con errores estándar Newey-West
+(sección *Diagnóstico*) se angosta a [0,74 ; 0,96] y el 1 queda afuera: la transmisión
+es alta (claramente mayor que 0,5), probablemente incompleta, y tarda tres meses. Figura `11b`.
 
 *C. Con y sin atípicos, sobre el modelo final.* Como cada variación compara un mes con el
 anterior, un precio ruidoso contamina dos variaciones; se sacan los tres meses de bajo
@@ -332,8 +332,9 @@ con `install.packages()`.
 ## 5. Conclusiones (paso 7)
 
 **¿Cuánto se transmite?** Un cambio de 1% en el precio internacional de la urea se
-traslada en un **0,85%** al precio de importación en Uruguay (IC 95%: 0,60 a 1,10). La
-transmisión es alta y no se puede descartar que sea completa.
+traslada en un **0,85%** al precio de importación en Uruguay (IC 95%: 0,60 a 1,10 con
+mínimos cuadrados; 0,74 a 0,96 con errores estándar robustos). La transmisión es alta y,
+con el intervalo robusto, incompleta.
 
 **¿Cuánto demora?** Se reparte en **tres meses**: alrededor de un cuarto el mismo mes,
 otro cuarto al mes siguiente y algo más de un tercio dos meses después. Del tercer mes en
